@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: aimarketpulse-db
@@ -17,7 +18,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
+  # Redis Cache (Optional)
   redis:
     image: redis:7-alpine
     container_name: aimarketpulse-redis
@@ -30,20 +34,55 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
-  localstack:
-    image: localstack/localstack:latest
-    container_name: aimarketpulse-localstack
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aimarketpulse-backend
     ports:
-      - "4566:4566"
+      - "8000:8000"
     environment:
-      SERVICES: s3,dynamodb,lambda,sqs,sns
-      DEBUG: 1
-      DATA_DIR: /tmp/localstack/data
+      - DATABASE_URL=postgresql://admin:password@postgres:5432/aimarketpulse
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
-      - localstack_data:/tmp/localstack
+      - ./backend:/app
+    networks:
+      - app-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aimarketpulse-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: npm run dev
 
 volumes:
   postgres_data:
   redis_data:
-  localstack_data:
+
+networks:
+  app-network:
+    driver: bridge
