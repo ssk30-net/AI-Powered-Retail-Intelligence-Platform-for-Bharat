@@ -1,0 +1,138 @@
+# AI Market Pulse - Python Dependencies
+
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# AWS SDK
+boto3==1.34.34
+botocore==1.34.34
+aioboto3==12.3.0
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+alembic==1.13.1
+asyncpg==0.29.0
+
+# Data Processing
+pandas==2.2.0
+numpy==1.26.3
+pyarrow==15.0.0
+
+# Web Scraping
+beautifulsoup4==4.12.3
+requests==2.31.0
+aiohttp==3.9.1
+selenium==4.17.2
+scrapy==2.11.0
+
+# ML & AI
+scikit-learn==1.4.0
+prophet==1.1.5
+statsmodels==0.14.1
+xgboost==2.0.3
+lightgbm==4.3.0
+
+# Deep Learning (Optional - for advanced models)
+torch==2.2.0
+tensorflow==2.15.0
+
+# AWS ML Services
+sagemaker==2.207.1
+anthropic==0.18.1  # For Bedrock Claude
+
+# NLP
+nltk==3.8.1
+spacy==3.7.2
+textblob==0.18.0
+transformers==4.37.2
+
+# Time Series
+pmdarima==2.0.4
+tslearn==0.6.3
+
+# API & Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+httpx==0.26.0
+
+# Validation & Serialization
+marshmallow==3.20.2
+jsonschema==4.21.1
+
+# Caching
+redis==5.0.1
+hiredis==2.3.2
+
+# Task Queue
+celery==5.3.6
+kombu==5.3.5
+
+# Monitoring & Logging
+python-json-logger==2.0.7
+structlog==24.1.0
+sentry-sdk==1.40.0
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.4
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx==0.26.0
+faker==22.6.0
+factory-boy==3.3.0
+
+# Code Quality
+black==24.1.1
+flake8==7.0.0
+mypy==1.8.0
+pylint==3.0.3
+isort==5.13.2
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.6
+
+# Utilities
+python-dotenv==1.0.1
+click==8.1.7
+pyyaml==6.0.1
+toml==0.10.2
+pytz==2024.1
+python-dateutil==2.8.2
+
+# Data Validation
+cerberus==1.3.5
+voluptuous==0.14.2
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Scheduling
+apscheduler==3.10.4
+
+# Email
+sendgrid==6.11.0
+
+# Payment Processing
+razorpay==1.4.1
+stripe==8.2.0
+
+# Geolocation
+geopy==2.4.1
+
+# Charts & Visualization (for report generation)
+matplotlib==3.8.2
+seaborn==0.13.2
+plotly==5.18.0
+
+# PDF Generation
+reportlab==4.0.9
+weasyprint==60.2
+
+# Environment Management
+python-decouple==3.8
