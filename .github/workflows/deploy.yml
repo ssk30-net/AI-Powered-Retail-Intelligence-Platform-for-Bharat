@@ -46,6 +46,13 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_BACKEND_REPO:latest
           echo "Backend image pushed: $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG"
 
+      - name: Register backend task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://backend-task-def.json \
+            --region $AWS_REGION
+          echo "Backend task definition registered"
+
       - name: Update ECS backend service
         run: |
           aws ecs update-service \
@@ -85,6 +92,13 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
           echo "Frontend image pushed: $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG"
+
+      - name: Register frontend task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://frontend-task-def.json \
+            --region $AWS_REGION
+          echo "Frontend task definition registered"
 
       - name: Update ECS frontend service
         run: |
