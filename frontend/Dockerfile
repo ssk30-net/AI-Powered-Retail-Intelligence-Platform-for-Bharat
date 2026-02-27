@@ -17,6 +17,9 @@ RUN npm run build
 # Production image
 FROM node:20-alpine
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 # Copy package files
