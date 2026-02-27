@@ -128,8 +128,8 @@ export function Insights() {
               text: 'text-blue-700',
               icon: 'text-blue-600',
             },
-          };
-          const config = colorConfig[insight.color];
+          } as const;
+          const config = colorConfig[insight.color as keyof typeof colorConfig];
 
           return (
             <div key={idx} className={`bg-white rounded-xl p-6 border ${config.border}`}>

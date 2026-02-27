@@ -196,8 +196,8 @@ export function Forecasts() {
               positive: { color: 'text-green-600', bg: 'bg-green-600' },
               neutral: { color: 'text-yellow-600', bg: 'bg-yellow-600' },
               negative: { color: 'text-red-600', bg: 'bg-red-600' },
-            };
-            const config = directionConfig[driver.direction];
+            } as const;
+            const config = directionConfig[driver.direction as keyof typeof directionConfig];
 
             return (
               <div key={idx} className="flex items-center gap-4">

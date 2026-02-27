@@ -69,8 +69,8 @@ export function RiskAlerts() {
               high: { bg: 'bg-red-50 dark:bg-red-950', border: 'border-red-300 dark:border-red-700' },
               medium: { bg: 'bg-yellow-50 dark:bg-yellow-950', border: 'border-yellow-300 dark:border-yellow-700' },
               low: { bg: 'bg-gray-50 dark:bg-gray-800', border: 'border-gray-300 dark:border-gray-700' },
-            };
-            const config = severityConfig[alert.severity];
+            } as const;
+            const config = severityConfig[alert.severity as keyof typeof severityConfig];
 
             return (
               <div
