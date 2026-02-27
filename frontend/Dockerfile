@@ -36,5 +36,9 @@ COPY --from=builder /app/next.config.js ./
 # Expose port
 EXPOSE 3000
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
 # Run the application
 CMD ["npm", "start"]
