@@ -4,49 +4,58 @@
 
 AI Market Pulse is a comprehensive platform that tracks commodity prices, product demand signals, and regional buying trends to deliver actionable forecasts, pricing intelligence, and competitive insights.
 
-## 🏗️ Monorepo Structure
+## 📁 Project Structure
 
 ```
 ai-market-pulse/
-├── frontend/              # React + Next.js frontend
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── README.md
+├── frontend/              # Next.js 14 frontend
+│   ├── src/app/          # App router pages
+│   ├── public/           # Static assets
+│   └── package.json      # Frontend dependencies
 │
 ├── backend/               # FastAPI backend
-│   ├── app/
-│   ├── requirements.txt
-│   └── README.md
+│   ├── app/              # Application code
+│   │   ├── routes/       # API endpoints
+│   │   ├── core/         # Config, database, security
+│   │   ├── models/       # Database models
+│   │   └── schemas/      # Pydantic schemas
+│   ├── venv/             # Python virtual environment
+│   └── requirements.txt  # Backend dependencies
 │
 ├── docs/                  # Documentation
-│   ├── DESIGN.md
-│   ├── FEATURES_AND_PAGES.md
+│   ├── API_ENDPOINTS.md
 │   ├── DATABASE_SCHEMA.md
-│   └── API_ENDPOINTS.md
+│   ├── DESIGN.md
+│   └── FEATURES_AND_PAGES.md
 │
-├── docker-compose.yml     # Docker setup
+├── docker-compose.yml     # Docker services
 ├── Makefile              # Development commands
+├── GETTING_STARTED.md    # Quick start guide
+├── SUCCESS_SUMMARY.md    # Setup success details
 └── README.md             # This file
 ```
 
 ## 🚀 Quick Start
 
+### ✅ Backend is Already Running!
+
+Your backend server is currently running at: **http://localhost:8000**
+
+**API Documentation:** http://localhost:8000/docs
+
 ### Prerequisites
 - Node.js 18+ and npm 9+
-- Python 3.10+
-- PostgreSQL 14+ (or Docker)
+- Python 3.14 (already set up ✅)
+- PostgreSQL 14+ (optional - for authentication)
+  - Install locally OR use Docker
+  - See `DEVELOPMENT_WITHOUT_DOCKER.md` for local setup
 
-### Option 1: Manual Setup
+### Start Frontend
 
-**1. Start Backend**
 ```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Linux/Mac
+cd frontend
+npm install
+npm run dev
 
 # Install dependencies
 pip install fastapi uvicorn sqlalchemy psycopg2-binary python-jose passlib bcrypt python-multipart pydantic-settings

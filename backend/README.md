@@ -2,6 +2,29 @@
 
 FastAPI backend for AI Market Pulse platform.
 
+## 🚨 Important: Python Version Issue
+
+If you're seeing this error during installation:
+```
+TypeError: 'feature_version' is an invalid keyword argument for compile()
+```
+
+**Your Python 3.10 has a corrupted pip.** Use the automated fix:
+
+```bash
+cd backend
+setup_fresh.bat
+```
+
+This script will:
+- Delete corrupted virtual environment
+- Create fresh venv with Python 3.11/3.12
+- Install all dependencies automatically
+
+**Alternative**: See `CHANGE_PYTHON_VERSION.md` for manual Python upgrade instructions.
+
+---
+
 ## Tech Stack
 
 - **Framework**: FastAPI
@@ -50,11 +73,21 @@ backend/
 
 ### Prerequisites
 
-- Python 3.10+
-- PostgreSQL 14+
+- Python 3.10+ (3.11 or 3.12 recommended)
+- PostgreSQL 14+ (or Docker)
 - pip
 
-### Installation
+### Quick Setup (Recommended)
+
+**Use the automated setup script:**
+```bash
+cd backend
+setup_fresh.bat
+```
+
+This handles everything automatically. If it fails, follow manual steps below.
+
+### Manual Installation
 
 1. Navigate to backend directory:
 ```bash
@@ -82,9 +115,19 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-5. Update `.env` with your configuration
+5. Update `.env` with your configuration (default values work for local dev)
 
-6. Create database:
+6. Start PostgreSQL using Docker (Recommended):
+```bash
+docker run --name aimarketpulse-db ^
+  -e POSTGRES_DB=aimarketpulse ^
+  -e POSTGRES_USER=admin ^
+  -e POSTGRES_PASSWORD=password ^
+  -p 5432:5432 ^
+  -d postgres:16-alpine
+```
+
+Or create database manually:
 ```bash
 # Connect to PostgreSQL
 psql -U postgres
@@ -95,9 +138,14 @@ CREATE USER admin WITH PASSWORD 'password';
 GRANT ALL PRIVILEGES ON DATABASE aimarketpulse TO admin;
 ```
 
-7. Run database migrations:
+7. Initialize database tables:
 ```bash
 python -m app.core.init_db
+```
+
+8. Verify setup (optional):
+```bash
+python verify_setup.py
 ```
 
 ### Running the Server
