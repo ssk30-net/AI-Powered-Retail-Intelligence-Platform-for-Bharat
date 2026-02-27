@@ -1,0 +1,51 @@
+{
+  "family": "aimarketpulse-frontend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::152641673729:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "frontend",
+      "image": "152641673729.dkr.ecr.eu-north-1.amazonaws.com/aimarketpulse-frontend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NEXT_PUBLIC_API_URL",
+          "value": "http://aimarketpulse-alb-1387394868.eu-north-1.elb.amazonaws.com/api/v1"
+        },
+        {
+          "name": "NEXT_PUBLIC_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "name": "NEXT_PUBLIC_AWS_REGION",
+          "value": "eu-north-1"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/aimarketpulse-frontend",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
