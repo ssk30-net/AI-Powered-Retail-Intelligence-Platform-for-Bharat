@@ -1,13 +1,14 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Union
+import json
 
 class Settings(BaseSettings):
     # API Settings
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "AI Market Pulse"
     
-    # CORS
-    CORS_ORIGINS: List[str] = [
+    # CORS - Can be a JSON string or a list
+    CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
         "http://localhost:8000",
     ]
@@ -39,5 +40,15 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
         extra = "allow"  # Allow extra fields from .env
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Convert CORS_ORIGINS string to list if needed
+        if isinstance(self.CORS_ORIGINS, str):
+            try:
+                self.CORS_ORIGINS = json.loads(self.CORS_ORIGINS)
+            except json.JSONDecodeError:
+                # If it's a simple string like "*", wrap it in a list
+                self.CORS_ORIGINS = [self.CORS_ORIGINS]
 
 settings = Settings()
