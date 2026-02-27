@@ -2,13 +2,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first
 COPY package*.json ./
 
-# Install dependencies with legacy peer deps to handle version conflicts
+# Install ALL dependencies (including devDependencies needed for build)
 RUN npm ci --legacy-peer-deps
 
-# Copy application code
+# Copy source code (node_modules excluded via .dockerignore)
 COPY . .
 
 # Build the application
