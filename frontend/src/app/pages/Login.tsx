@@ -1,5 +1,7 @@
+'use client';
+
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useRouter } from 'next/navigation';
 import { Activity, Mail, Lock, Chrome, Cloud, Shield, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { isFirstTimeUser } from '../utils/userState';
@@ -7,7 +9,7 @@ import { isFirstTimeUser } from '../utils/userState';
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogin = (e: React.FormEvent) => {
@@ -15,9 +17,9 @@ export function Login() {
     
     // Check if first-time user and redirect accordingly
     if (isFirstTimeUser()) {
-      navigate('/onboarding');
+      router.push('/onboarding');
     } else {
-      navigate('/app');
+      router.push('/app');
     }
   };
 

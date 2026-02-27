@@ -1,9 +1,11 @@
+'use client';
+
 import { ArrowRight, Sparkles, TrendingUp, Brain, Shield, BarChart3, Users, Building2, Factory, Target, Zap, Activity } from 'lucide-react';
 import { LogoConcept2 } from '../components/logos/LogoConcept2';
-import { useNavigate } from 'react-router';
+import { useRouter } from 'next/navigation';
 
 export function PrototypeLanding() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-white">
@@ -26,7 +28,7 @@ export function PrototypeLanding() {
                 Impact
               </a>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => router.push('/login')}
                 className="px-6 py-2.5 bg-gradient-to-r from-[#1F3C88] to-[#00A8A8] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
               >
                 Explore Prototype
@@ -68,14 +70,14 @@ export function PrototypeLanding() {
             
             <div className="flex items-center justify-center gap-4">
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => router.push('/login')}
                 className="px-8 py-4 bg-gradient-to-r from-[#1F3C88] to-[#00A8A8] text-white rounded-lg font-semibold text-lg hover:shadow-xl transition-all flex items-center gap-2 group"
               >
                 Explore Prototype
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <button
-                onClick={() => navigate('/app')}
+                onClick={() => router.push('/app')}
                 className="px-8 py-4 bg-white border-2 border-[#1F3C88] text-[#1F3C88] rounded-lg font-semibold text-lg hover:bg-[#1F3C88] hover:text-white transition-all"
               >
                 View Demo
@@ -333,7 +335,7 @@ export function PrototypeLanding() {
             Explore our prototype and see how AI can transform market analysis
           </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => router.push('/login')}
             className="px-10 py-4 bg-gradient-to-r from-[#1F3C88] to-[#00A8A8] text-white rounded-lg font-semibold text-lg hover:shadow-xl transition-all inline-flex items-center gap-2 group"
           >
             Explore Prototype

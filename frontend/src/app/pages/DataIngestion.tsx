@@ -1,6 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useRouter } from 'next/navigation';
 
 export function DataIngestion() {
   const [isDragging, setIsDragging] = useState(false);
@@ -8,7 +10,7 @@ export function DataIngestion() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isValidated, setIsValidated] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -64,7 +66,7 @@ export function DataIngestion() {
       if (currentProgress >= 100) {
         clearInterval(interval);
         setTimeout(() => {
-          navigate('/app');
+          router.push('/app');
         }, 1500);
       }
     }, 300);

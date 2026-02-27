@@ -1,11 +1,13 @@
+'use client';
+
 import { ArrowRight, Sparkles, TrendingUp, Brain, Shield, Zap, Users, Building2, Factory, BarChart3, Lock, Cloud, CheckCircle2, Star, Twitter, Linkedin, Github, Mail } from 'lucide-react';
 import { LogoConcept1 } from '../components/logos/LogoConcept1';
 import { LogoConcept2 } from '../components/logos/LogoConcept2';
 import { LogoConcept3 } from '../components/logos/LogoConcept3';
-import { useNavigate } from 'react-router';
+import { useRouter } from 'next/navigation';
 
 export function LandingPage() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-white">
@@ -25,13 +27,13 @@ export function LandingPage() {
                 Pricing
               </a>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => router.push('/login')}
                 className="text-gray-700 hover:text-[#1F3C88] font-medium transition-colors"
               >
                 Sign In
               </button>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => router.push('/login')}
                 className="px-6 py-2.5 bg-gradient-to-r from-[#1F3C88] to-[#00A8A8] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
               >
                 Start Free Trial
@@ -72,14 +74,14 @@ export function LandingPage() {
             
             <div className="flex items-center justify-center gap-4">
               <button
-                onClick={() => navigate('/')}
+                onClick={() => router.push('/')}
                 className="px-8 py-4 bg-gradient-to-r from-[#1F3C88] to-[#00A8A8] text-white rounded-lg font-semibold text-lg hover:shadow-xl transition-all flex items-center gap-2 group"
               >
                 Start Free Trial
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <button
-                onClick={() => navigate('/app')}
+                onClick={() => router.push('/app')}
                 className="px-8 py-4 bg-white border-2 border-[#1F3C88] text-[#1F3C88] rounded-lg font-semibold text-lg hover:bg-[#1F3C88] hover:text-white transition-all"
               >
                 View Live Demo
@@ -299,7 +301,7 @@ export function LandingPage() {
                   <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 font-medium">Interactive Dashboard Preview</p>
                   <button
-                    onClick={() => navigate('/app')}
+                    onClick={() => router.push('/app')}
                     className="mt-4 px-6 py-2 bg-[#1F3C88] text-white rounded-lg font-semibold hover:bg-[#00A8A8] transition-colors"
                   >
                     View Live Demo
@@ -316,7 +318,7 @@ export function LandingPage() {
                   <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 font-medium">Prediction Model Visualization</p>
                   <button
-                    onClick={() => navigate('/app/forecast')}
+                    onClick={() => router.push('/app/forecast')}
                     className="mt-4 px-6 py-2 bg-[#1F3C88] text-white rounded-lg font-semibold hover:bg-[#00A8A8] transition-colors"
                   >
                     Explore Forecasts
@@ -333,7 +335,7 @@ export function LandingPage() {
                   <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 font-medium">Conversational AI Assistant</p>
                   <button
-                    onClick={() => navigate('/app/copilot')}
+                    onClick={() => router.push('/app/copilot')}
                     className="mt-4 px-6 py-2 bg-[#1F3C88] text-white rounded-lg font-semibold hover:bg-[#00A8A8] transition-colors"
                   >
                     Chat with AI Copilot

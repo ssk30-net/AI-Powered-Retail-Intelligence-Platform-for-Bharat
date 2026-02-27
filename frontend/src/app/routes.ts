@@ -1,47 +1,25 @@
-import { createBrowserRouter } from "react-router";
-import { Login } from "./pages/Login";
-import { PrototypeLanding } from "./pages/PrototypeLanding";
-import { OnboardingDataIngestion } from "./pages/OnboardingDataIngestion";
-import { DataIngestion } from "./pages/DataIngestion";
-import { WireframeLayout } from "./components/WireframeLayout";
-import { WireframeDashboard } from "./pages/WireframeDashboard";
-import { PriceForecast } from "./pages/PriceForecast";
-import { MarketSentiment } from "./pages/MarketSentiment";
-import { AICopilot } from "./pages/AICopilot";
-import { RiskAlerts } from "./pages/RiskAlerts";
-import { Reports } from "./pages/Reports";
-import { InsightsPerformance } from "./pages/InsightsPerformance";
-import { SettingsPage } from "./pages/SettingsPage";
+// This file is not used in Next.js App Router
+// Next.js uses file-based routing with the following structure:
+// - frontend/src/app/page.tsx -> /
+// - frontend/src/app/login/page.tsx -> /login
+// - frontend/src/app/app/page.tsx -> /app
+// - frontend/src/app/app/forecast/page.tsx -> /app/forecast
+// etc.
 
-export const router = createBrowserRouter([
-  {
-    path: "/",
-    Component: PrototypeLanding,
+// Keeping this file for reference but it's not imported anywhere
+export const routes = {
+  home: '/',
+  login: '/login',
+  onboarding: '/onboarding',
+  upload: '/upload',
+  app: {
+    dashboard: '/app',
+    forecast: '/app/forecast',
+    sentiment: '/app/sentiment',
+    copilot: '/app/copilot',
+    alerts: '/app/alerts',
+    reports: '/app/reports',
+    insights: '/app/insights',
+    settings: '/app/settings',
   },
-  {
-    path: "/login",
-    Component: Login,
-  },
-  {
-    path: "/onboarding",
-    Component: OnboardingDataIngestion,
-  },
-  {
-    path: "/upload",
-    Component: DataIngestion,
-  },
-  {
-    path: "/app",
-    Component: WireframeLayout,
-    children: [
-      { index: true, Component: WireframeDashboard },
-      { path: "forecast", Component: PriceForecast },
-      { path: "sentiment", Component: MarketSentiment },
-      { path: "copilot", Component: AICopilot },
-      { path: "alerts", Component: RiskAlerts },
-      { path: "reports", Component: Reports },
-      { path: "insights", Component: InsightsPerformance },
-      { path: "settings", Component: SettingsPage },
-    ],
-  },
-]);
+};

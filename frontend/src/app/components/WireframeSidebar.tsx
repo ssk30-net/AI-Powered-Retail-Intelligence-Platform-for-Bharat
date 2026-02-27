@@ -1,7 +1,12 @@
-import { NavLink } from 'react-router';
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, TrendingUp, Heart, Bot, AlertTriangle, FileText, Lightbulb, Settings, Activity } from 'lucide-react';
 
 export function WireframeSidebar() {
+  const pathname = usePathname();
+  
   const navItems = [
     { path: '/app', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/app/forecast', label: 'Forecast', icon: TrendingUp },
@@ -33,22 +38,23 @@ export function WireframeSidebar() {
         <ul className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isActive = item.path === '/app' 
+              ? pathname === '/app' 
+              : pathname?.startsWith(item.path);
+            
             return (
               <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  end={item.path === '/app'}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`
-                  }
+                <Link
+                  href={item.path}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
-                </NavLink>
+                </Link>
               </li>
             );
           })}

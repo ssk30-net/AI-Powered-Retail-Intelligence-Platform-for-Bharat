@@ -1,6 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle, X, FileSpreadsheet, FileJson, Info, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useRouter } from 'next/navigation';
 import { markUserAsReturning } from '../utils/userState';
 
 export function OnboardingDataIngestion() {
@@ -10,7 +12,7 @@ export function OnboardingDataIngestion() {
   const [progress, setProgress] = useState(0);
   const [isValidated, setIsValidated] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -84,7 +86,7 @@ export function OnboardingDataIngestion() {
         // Mark user as returning and redirect to dashboard
         setTimeout(() => {
           markUserAsReturning();
-          navigate('/app');
+          router.push('/app');
         }, 1500);
       }
       

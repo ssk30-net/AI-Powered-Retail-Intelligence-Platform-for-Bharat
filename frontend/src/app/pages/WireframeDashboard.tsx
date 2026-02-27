@@ -1,8 +1,10 @@
+'use client';
+
 import { TrendingUp, Activity, Heart, AlertTriangle, MapPin, Bell, Upload } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useRouter } from 'next/navigation';
 
 export function WireframeDashboard() {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <div className="p-8 bg-gray-50 dark:bg-gray-950">
@@ -13,7 +15,7 @@ export function WireframeDashboard() {
           <p className="text-gray-600 dark:text-gray-400">Market Intelligence Overview</p>
         </div>
         <button
-          onClick={() => navigate('/upload')}
+          onClick={() => router.push('/upload')}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1F3C88] to-[#00A8A8] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
         >
           <Upload className="w-5 h-5" />
