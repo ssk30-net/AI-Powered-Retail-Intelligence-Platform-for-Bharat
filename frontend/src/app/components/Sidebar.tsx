@@ -1,18 +1,38 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, TrendingUp, LineChart, Lightbulb, Activity } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  TrendingUp, 
+  LineChart, 
+  Lightbulb, 
+  Activity,
+  MessageSquare,
+  Bell,
+  BarChart3,
+  LogOut
+} from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
   
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/forecasts', label: 'Forecasts', icon: TrendingUp },
-    { path: '/price-sensitivity', label: 'Price Analysis', icon: LineChart },
+    { path: '/sentiment', label: 'Sentiment', icon: BarChart3 },
     { path: '/insights', label: 'Insights', icon: Lightbulb },
+    { path: '/alerts', label: 'Alerts', icon: Bell },
+    { path: '/copilot', label: 'AI Copilot', icon: MessageSquare },
   ];
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen">
@@ -56,10 +76,17 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom Info */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 space-y-2">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Logout</span>
+        </button>
         <div className="px-4 py-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600">v0.1.0</p>
-          <p className="text-xs text-gray-500 mt-1">Prototype</p>
+          <p className="text-xs text-gray-600">v1.1.0</p>
+          <p className="text-xs text-gray-500 mt-1">Production</p>
         </div>
       </div>
     </aside>

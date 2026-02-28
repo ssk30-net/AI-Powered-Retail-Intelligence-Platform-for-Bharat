@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { Bot, Send, X, Minimize2 } from 'lucide-react';
 
