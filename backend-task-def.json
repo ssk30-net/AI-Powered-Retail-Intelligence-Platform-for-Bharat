@@ -16,7 +16,7 @@
         { "name": "SECRET_KEY", "value": "bH7@xL2!vZ9#pQ6$rT4^mW8&sD1*kA0yN5!cF3" },
         { "name": "API_V1_STR", "value": "/api/v1" },
         { "name": "PROJECT_NAME", "value": "AI Market Pulse" },
-        { "name": "CORS_ORIGINS", "value": "[\"http://localhost:3000\",\"http://localhost:8000\",\"http://aimarketpulse-alb-1387394868.eu-north-1.elb.amazonaws.com\"]" },
+        { "name": "CORS_ORIGINS", "value": "[\"http://localhost:3000\",\"http://localhost:8000\",\"http://127.0.0.1:3000\",\"http://127.0.0.1:8000\",\"http://aimarketpulse-alb-1387394868.eu-north-1.elb.amazonaws.com\",\"https://aimarketpulse-alb-1387394868.eu-north-1.elb.amazonaws.com\"]" },
         { "name": "AWS_REGION", "value": "eu-north-1" },
         { "name": "AWS_ACCESS_KEY_ID", "value": "AKIASHCRHDIARDSLHROT" },
         { "name": "AWS_SECRET_ACCESS_KEY", "value": "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" },
