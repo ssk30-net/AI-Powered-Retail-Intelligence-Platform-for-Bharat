@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { Activity, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,13 +19,13 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await login(formData.email, formData.password);
       toast.success('Login successful!');
       router.push('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || 'Login failed');
+      toast.error(getErrorMessage(error, 'Login failed'));
     }
   };
 

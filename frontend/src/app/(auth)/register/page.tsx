@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { Activity, Mail, Lock, User, Building, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '@/lib/utils';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,13 +22,13 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await register(formData);
       toast.success('Registration successful!');
-      router.push('/onboarding');
+      router.push('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || 'Registration failed');
+      toast.error(getErrorMessage(error, 'Registration failed'));
     }
   };
 

@@ -80,12 +80,15 @@ export function downloadFile(data: Blob, filename: string): void {
   window.URL.revokeObjectURL(url);
 }
 
-export function getErrorMessage(error: any): string {
-  if (error.response?.data?.error?.message) {
-    return error.response.data.error.message;
+export function getErrorMessage(error: any, fallback: string = 'An unexpected error occurred'): string {
+  const data = error.response?.data;
+  if (!data) return error.message || fallback;
+  // FastAPI HTTPException: { detail: "message" } or { detail: ["msg1", "msg2"] }
+  if (data.detail) {
+    if (typeof data.detail === 'string') return data.detail;
+    if (Array.isArray(data.detail) && data.detail.length) return data.detail.map((e: any) => e.msg || e).join(', ');
   }
-  if (error.message) {
-    return error.message;
-  }
-  return 'An unexpected error occurred';
+  if (data.error?.message) return data.error.message;
+  if (data.message) return data.message;
+  return error.message || fallback;
 }
