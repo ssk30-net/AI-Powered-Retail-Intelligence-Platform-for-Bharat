@@ -104,10 +104,12 @@ echo Do you want to initialize/reinitialize the database?
 echo   [Y] Yes - Initialize database (creates all tables)
 echo   [N] No  - Skip and start server
 echo.
-choice /C YN /N /M "Your choice: "
+set /p DB_CHOICE="Enter your choice (Y/N): "
 
-if errorlevel 2 goto :start_server
-if errorlevel 1 goto :init_database
+if /i "%DB_CHOICE%"=="Y" goto :init_database
+if /i "%DB_CHOICE%"=="N" goto :start_server
+echo Invalid choice. Skipping database initialization.
+goto :start_server
 
 :init_database
 echo.
