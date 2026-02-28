@@ -11,6 +11,16 @@ RUN npm ci --legacy-peer-deps
 # Copy source code (node_modules excluded via .dockerignore)
 COPY . .
 
+# Build arguments for Next.js environment variables
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_ENVIRONMENT=production
+ARG NEXT_PUBLIC_AWS_REGION=eu-north-1
+
+# Set environment variables for build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_ENVIRONMENT=$NEXT_PUBLIC_ENVIRONMENT
+ENV NEXT_PUBLIC_AWS_REGION=$NEXT_PUBLIC_AWS_REGION
+
 # Build the application
 RUN npm run build
 

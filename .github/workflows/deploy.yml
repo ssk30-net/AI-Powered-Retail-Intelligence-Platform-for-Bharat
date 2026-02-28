@@ -87,7 +87,11 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           cd frontend
-          docker build -t $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG .
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=http://aimarketpulse-alb-1387394868.eu-north-1.elb.amazonaws.com/api/v1 \
+            --build-arg NEXT_PUBLIC_ENVIRONMENT=production \
+            --build-arg NEXT_PUBLIC_AWS_REGION=eu-north-1 \
+            -t $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
           docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
