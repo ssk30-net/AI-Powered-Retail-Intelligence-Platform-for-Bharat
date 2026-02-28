@@ -10,49 +10,17 @@
       "name": "backend",
       "image": "152641673729.dkr.ecr.eu-north-1.amazonaws.com/aimarketpulse-backend:latest",
       "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 8000,
-          "protocol": "tcp"
-        }
-      ],
+      "portMappings": [{ "containerPort": 8000, "protocol": "tcp" }],
       "environment": [
-        {
-          "name": "DATABASE_URL",
-          "value": "postgresql://postgres:ai-market-pulse@database-1.cjqose8cc9yh.eu-north-1.rds.amazonaws.com:5432/aimarketpulse"
-        },
-        {
-          "name": "SECRET_KEY",
-          "value": "bH7@xL2!vZ9#pQ6$rT4^mW8&sD1*kA0yN5!cF3"
-        },
-        {
-          "name": "API_V1_STR",
-          "value": "/api/v1"
-        },
-        {
-          "name": "PROJECT_NAME",
-          "value": "AI Market Pulse"
-        },
-        {
-          "name": "CORS_ORIGINS",
-          "value": "*"
-        },
-        {
-          "name": "AWS_REGION",
-          "value": "eu-north-1"
-        },
-        {
-          "name": "AWS_ACCESS_KEY_ID",
-          "value": "AKIASHCRHDIARDSLHROT"
-        },
-        {
-          "name": "AWS_SECRET_ACCESS_KEY",
-          "value": "dTRALrZYYLO60enreoyk2yfdwDbTL9p0OsxqY8bO"
-        },
-        {
-          "name": "ENVIRONMENT",
-          "value": "production"
-        }
+        { "name": "DATABASE_URL", "value": "postgresql://postgres:ai-market-pulse@database-1.cjqose8cc9yh.eu-north-1.rds.amazonaws.com:5432/aimarketpulse" },
+        { "name": "SECRET_KEY", "value": "bH7@xL2!vZ9#pQ6$rT4^mW8&sD1*kA0yN5!cF3" },
+        { "name": "API_V1_STR", "value": "/api/v1" },
+        { "name": "PROJECT_NAME", "value": "AI Market Pulse" },
+        { "name": "CORS_ORIGINS", "value": "[\"http://localhost:3000\",\"http://localhost:8000\",\"http://aimarketpulse-alb-1387394868.eu-north-1.elb.amazonaws.com\"]" },
+        { "name": "AWS_REGION", "value": "eu-north-1" },
+        { "name": "AWS_ACCESS_KEY_ID", "value": "AKIASHCRHDIARDSLHROT" },
+        { "name": "AWS_SECRET_ACCESS_KEY", "value": "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" },
+        { "name": "ENVIRONMENT", "value": "production" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
