@@ -36,12 +36,13 @@ echo   • Save to ml_data/ folder
 echo.
 
 set /p CONFIRM="Continue? (Y/N): "
-if /i not "%CONFIRM%"=="Y" (
-    echo Cancelled.
-    pause
-    exit /b 0
-)
+if /i "%CONFIRM%"=="Y" goto :continue
+if /i "%CONFIRM%"=="YES" goto :continue
+echo Cancelled.
+pause
+exit /b 0
 
+:continue
 echo.
 echo Exporting training data...
 echo This may take 2-5 minutes depending on data size...

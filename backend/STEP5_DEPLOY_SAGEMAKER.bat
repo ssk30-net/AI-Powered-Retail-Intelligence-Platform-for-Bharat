@@ -47,7 +47,13 @@ echo Estimated cost: ~$0.05/hour (ml.t2.medium)
 echo.
 
 set /p CONFIRM="Continue with deployment? (Y/N): "
-if /i not "%CONFIRM%"=="Y" (
+if /i "%CONFIRM%"=="Y" goto :continue
+if /i "%CONFIRM%"=="YES" goto :continue
+echo Cancelled.
+pause
+exit /b 0
+
+:continue
     echo Cancelled.
     pause
     exit /b 0

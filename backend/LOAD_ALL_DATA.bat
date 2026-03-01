@@ -51,7 +51,11 @@ echo   - datasets/archive/KO_CocaCola_Stock_Prices_1980_2026.csv
 echo.
 
 set /p LOAD_REAL="Load real datasets? (Y/N): "
-if /i not "%LOAD_REAL%"=="Y" goto :skip_real
+if /i "%LOAD_REAL%"=="Y" goto :load_real
+if /i "%LOAD_REAL%"=="YES" goto :load_real
+goto :skip_real
+
+:load_real
 
 echo.
 echo Loading real data...
@@ -87,7 +91,11 @@ echo   - Fill gaps in historical data
 echo.
 
 set /p GEN_SYNTHETIC="Generate synthetic data? (Y/N): "
-if /i not "%GEN_SYNTHETIC%"=="Y" goto :skip_synthetic
+if /i "%GEN_SYNTHETIC%"=="Y" goto :gen_synthetic
+if /i "%GEN_SYNTHETIC%"=="YES" goto :gen_synthetic
+goto :skip_synthetic
+
+:gen_synthetic
 
 echo.
 echo Generating synthetic data...
@@ -124,7 +132,11 @@ echo   - ML model training features
 echo.
 
 set /p GEN_ML_DATA="Generate ML training data? (Y/N): "
-if /i not "%GEN_ML_DATA%"=="Y" goto :skip_ml_data
+if /i "%GEN_ML_DATA%"=="Y" goto :gen_ml_data
+if /i "%GEN_ML_DATA%"=="YES" goto :gen_ml_data
+goto :skip_ml_data
+
+:gen_ml_data
 
 echo.
 echo Generating ML training data...

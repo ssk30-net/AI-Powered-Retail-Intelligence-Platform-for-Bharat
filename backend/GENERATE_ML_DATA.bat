@@ -35,12 +35,13 @@ echo   • Enable accurate price predictions
 echo.
 
 set /p CONFIRM="Continue? (Y/N): "
-if /i not "%CONFIRM%"=="Y" (
-    echo Cancelled.
-    pause
-    exit /b 0
-)
+if /i "%CONFIRM%"=="Y" goto :continue
+if /i "%CONFIRM%"=="YES" goto :continue
+echo Cancelled.
+pause
+exit /b 0
 
+:continue
 echo.
 echo Generating ML training data...
 echo This will take 2-3 minutes...

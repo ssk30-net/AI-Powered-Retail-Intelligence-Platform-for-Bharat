@@ -40,12 +40,13 @@ echo Estimated time: 2-5 minutes
 echo.
 
 set /p CONFIRM="Continue? (Y/N): "
-if /i not "%CONFIRM%"=="Y" (
-    echo Cancelled.
-    pause
-    exit /b 0
-)
+if /i "%CONFIRM%"=="Y" goto :continue
+if /i "%CONFIRM%"=="YES" goto :continue
+echo Cancelled.
+pause
+exit /b 0
 
+:continue
 echo.
 echo Training model...
 echo ────────────────────────────────────────────────────────────
