@@ -64,10 +64,16 @@ data/raw/
 data/processed/
 *.csv
 *.parquet
+datasets/
+comodity_price_Dataset.csv
 
 # ML Models
 models/*.pkl
 models/*.h5
+
+# Synthetic Data (generated locally, not committed)
+**/synthetic_*.csv
+**/generated_*.csv
 
 # Secrets
 secrets.json
