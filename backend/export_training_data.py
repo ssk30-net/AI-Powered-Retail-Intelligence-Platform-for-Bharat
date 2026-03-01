@@ -60,12 +60,15 @@ class TrainingDataExporter:
         FROM price_history ph
         JOIN commodities c ON ph.commodity_id = c.id
         JOIN regions r ON ph.region_id = r.id
-        WHERE ph.recorded_at >= CURRENT_DATE - INTERVAL '2 years'
         ORDER BY ph.commodity_id, ph.region_id, ph.recorded_at
         """
         
         df = pd.read_sql_query(query, self.conn)
         logger.info(f"Extracted {len(df)} price records")
+        
+        # Log date range if data exists
+        if len(df) > 0:
+            logger.info(f"Date range: {df['date'].min()} to {df['date'].max()}")
         
         return df
     
@@ -83,12 +86,15 @@ class TrainingDataExporter:
             SUM(CASE WHEN sentiment_label = 'negative' THEN 1 ELSE 0 END) as negative_count,
             SUM(CASE WHEN sentiment_label = 'neutral' THEN 1 ELSE 0 END) as neutral_count
         FROM sentiment_data
-        WHERE published_at >= CURRENT_DATE - INTERVAL '2 years'
         GROUP BY commodity_id, DATE(published_at)
         """
         
         df = pd.read_sql_query(query, self.conn)
         logger.info(f"Extracted {len(df)} sentiment records")
+        
+        # Log date range if data exists
+        if len(df) > 0:
+            logger.info(f"Date range: {df['date'].min()} to {df['date'].max()}")
         
         return df
     
