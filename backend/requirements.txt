@@ -18,3 +18,33 @@ email-validator
 
 # Development
 python-dotenv
+
+# AI/ML Libraries
+openai>=1.0.0
+anthropic
+langchain
+langchain-openai
+transformers
+torch
+sentence-transformers
+numpy
+pandas
+scikit-learn
+
+# NLP & Sentiment Analysis
+nltk
+textblob
+vaderSentiment
+
+# News & Data Collection
+feedparser
+beautifulsoup4
+requests
+
+# AWS Services
+boto3
+botocore
+
+# Caching
+redis
+hiredis
