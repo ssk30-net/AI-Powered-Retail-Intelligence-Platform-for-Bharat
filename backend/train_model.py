@@ -107,7 +107,8 @@ class ModelTrainer:
             'reg_alpha': 0,
             'reg_lambda': 1,
             'random_state': 42,
-            'n_jobs': -1
+            'n_jobs': -1,
+            'eval_metric': 'rmse'  # XGBoost 2.0+ requires this in constructor
         }
         
         logger.info("Model parameters:")
@@ -121,7 +122,6 @@ class ModelTrainer:
         self.model.fit(
             X_train_scaled, y_train,
             eval_set=[(X_train_scaled, y_train), (X_val_scaled, y_val)],
-            eval_metric='rmse',
             verbose=False
         )
         
