@@ -279,6 +279,15 @@ class TrainingDataExporter:
         logger.info("EXPORT SUMMARY")
         logger.info("=" * 80)
         
+        # Check if dataframe is empty
+        if len(df) == 0:
+            logger.error("No data to summarize - dataframe is empty!")
+            logger.error("Please check:")
+            logger.error("  1. Database has data (run LOAD_ALL_DATA.bat)")
+            logger.error("  2. Database connection is working")
+            logger.error("  3. Check logs above for errors")
+            return
+        
         print(f"\nDataset Statistics:")
         print(f"  Total Records: {len(df):,}")
         print(f"  Date Range: {df['date'].min()} to {df['date'].max()}")
@@ -317,10 +326,35 @@ def main():
     try:
         # Export data
         price_df = exporter.export_price_data()
+        
+        # Check if we have data
+        if len(price_df) == 0:
+            logger.error("=" * 80)
+            logger.error("NO DATA FOUND IN DATABASE!")
+            logger.error("=" * 80)
+            logger.error("\nPlease run LOAD_ALL_DATA.bat first to load data:")
+            logger.error("  1. cd backend")
+            logger.error("  2. LOAD_ALL_DATA.bat")
+            logger.error("  3. Wait for data loading to complete")
+            logger.error("  4. Then run this script again")
+            logger.error("=" * 80)
+            return
+        
         sentiment_df = exporter.export_sentiment_data()
         
         # Merge datasets
         df = exporter.merge_datasets(price_df, sentiment_df)
+        
+        # Check merged data
+        if len(df) == 0:
+            logger.error("=" * 80)
+            logger.error("NO DATA AFTER MERGE!")
+            logger.error("=" * 80)
+            logger.error(f"Price records: {len(price_df)}")
+            logger.error(f"Sentiment records: {len(sentiment_df)}")
+            logger.error("This might be a date mismatch issue.")
+            logger.error("=" * 80)
+            return
         
         # Create features
         df = exporter.create_lag_features(df)
