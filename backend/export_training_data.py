@@ -211,7 +211,8 @@ class TrainingDataExporter:
         logger.info(f"Removed {initial_count - len(df)} rows with missing target")
         
         # Fill remaining NaN values with forward fill then backward fill
-        df = df.fillna(method='ffill').fillna(method='bfill')
+        # Using pandas 2.0+ syntax
+        df = df.ffill().bfill()
         
         # Replace any remaining NaN with 0
         df = df.fillna(0)
