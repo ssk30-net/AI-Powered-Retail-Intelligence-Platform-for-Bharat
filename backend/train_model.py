@@ -61,20 +61,28 @@ class ModelTrainer:
         
         return train_df, val_df, test_df
     
-    def prepare_features(self, df):
+    def prepare_features(self, df, feature_names=None):
         """Prepare features and target"""
         
-        # Select only numeric features
-        numeric_features = [f for f in self.feature_names if f in df.columns and df[f].dtype in ['int64', 'float64']]
+        # If feature_names not provided, determine from training data
+        if feature_names is None:
+            # Select only numeric features from feature_names list
+            numeric_features = [f for f in self.feature_names if f in df.columns and df[f].dtype in ['int64', 'float64']]
+        else:
+            # Use provided feature names (for validation/test sets)
+            numeric_features = feature_names
         
-        X = df[numeric_features].copy()
+        # Select only features that exist in the dataframe
+        available_features = [f for f in numeric_features if f in df.columns]
+        
+        X = df[available_features].copy()
         y = df['target_price_7d'].copy()
         
         # Handle any remaining NaN or inf values
         X = X.replace([np.inf, -np.inf], np.nan)
         X = X.fillna(0)
         
-        return X, y, numeric_features
+        return X, y, available_features
     
     def train_model(self, X_train, y_train, X_val, y_val):
         """Train XGBoost model"""
@@ -288,12 +296,15 @@ def main():
         # Load data
         train_df, val_df, test_df = trainer.load_data()
         
-        # Prepare features
+        # Prepare features - use same feature list for all datasets
         X_train, y_train, feature_names = trainer.prepare_features(train_df)
-        X_val, y_val, _ = trainer.prepare_features(val_df)
-        X_test, y_test, _ = trainer.prepare_features(test_df)
+        X_val, y_val, _ = trainer.prepare_features(val_df, feature_names=feature_names)
+        X_test, y_test, _ = trainer.prepare_features(test_df, feature_names=feature_names)
         
         logger.info(f"\nUsing {len(feature_names)} features for training")
+        logger.info(f"Training set shape: {X_train.shape}")
+        logger.info(f"Validation set shape: {X_val.shape}")
+        logger.info(f"Test set shape: {X_test.shape}")
         
         # Train model
         X_train_scaled, X_val_scaled = trainer.train_model(X_train, y_train, X_val, y_val)
