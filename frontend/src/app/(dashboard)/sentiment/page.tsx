@@ -1,68 +1,80 @@
 'use client';
 
-import { Smile, Meh, Frown, TrendingUp, MessageSquare } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Smile, Meh, Frown, TrendingUp, MessageSquare, Loader } from 'lucide-react';
+import { insightsAPI } from '@/lib/api';
 
 export default function SentimentPage() {
-  const sentimentData = [
-    { category: 'Positive', count: 245, percentage: 65, color: 'bg-green-500' },
-    { category: 'Neutral', count: 89, percentage: 24, color: 'bg-yellow-500' },
-    { category: 'Negative', count: 41, percentage: 11, color: 'bg-red-500' },
-  ];
+  const [sentimentData, setSentimentData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCommodity, setSelectedCommodity] = useState('wheat');
 
-  const newsItems = [
-    { title: 'Wheat prices expected to rise', sentiment: 'positive', source: 'Market News', date: '2 hours ago' },
-    { title: 'Rice harvest shows strong yield', sentiment: 'positive', source: 'Agriculture Today', date: '5 hours ago' },
-    { title: 'Corn market remains stable', sentiment: 'neutral', source: 'Commodity Report', date: '1 day ago' },
-    { title: 'Weather concerns for soybean', sentiment: 'negative', source: 'Farm Weekly', date: '2 days ago' },
-  ];
+  useEffect(() => {
+    loadSentimentData();
+  }, [selectedCommodity]);
+
+  const loadSentimentData = async () => {
+    setIsLoading(true);
+    try {
+      const data = await insightsAPI.getCommoditySentiment(selectedCommodity);
+      setSentimentData(data);
+    } catch (error) {
+      console.error('Error loading sentiment data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+        <Loader className="w-12 h-12 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  const getSentimentIcon = () => {
+    if (!sentimentData) return <Meh className="w-16 h-16 text-gray-500" />;
+    const sentiment = sentimentData.overall_sentiment.toLowerCase();
+    if (sentiment.includes('positive')) return <Smile className="w-16 h-16 text-green-500" />;
+    if (sentiment.includes('negative')) return <Frown className="w-16 h-16 text-red-500" />;
+    return <Meh className="w-16 h-16 text-yellow-500" />;
+  };
+
+  const getSentimentColor = (sentiment: string) => {
+    const s = sentiment.toLowerCase();
+    if (s.includes('positive')) return 'bg-green-100 text-green-700';
+    if (s.includes('negative')) return 'bg-red-100 text-red-700';
+    return 'bg-yellow-100 text-yellow-700';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Market Sentiment Analysis</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Market Sentiment Analysis</h1>
+          <select
+            value={selectedCommodity}
+            onChange={(e) => setSelectedCommodity(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="wheat">Wheat</option>
+            <option value="rice">Rice</option>
+            <option value="corn">Corn</option>
+            <option value="soybean">Soybean</option>
+          </select>
+        </div>
 
         {/* Overall Sentiment */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-xl font-semibold mb-6">Overall Market Sentiment</h2>
           <div className="flex items-center justify-center mb-6">
-            <Smile className="w-16 h-16 text-green-500" />
+            {getSentimentIcon()}
             <div className="ml-4">
-              <div className="text-4xl font-bold">Positive</div>
-              <div className="text-gray-600">Market outlook is favorable</div>
+              <div className="text-4xl font-bold capitalize">{sentimentData?.overall_sentiment || 'Loading...'}</div>
+              <div className="text-gray-600">Score: {sentimentData?.sentiment_score?.toFixed(2) || '0.00'}</div>
+              <div className="text-sm text-gray-500">{sentimentData?.article_count || 0} news articles analyzed</div>
             </div>
-          </div>
-
-          {/* Sentiment Distribution */}
-          <div className="space-y-4">
-            {sentimentData.map((item) => (
-              <div key={item.category}>
-                <div className="flex justify-between mb-2">
-                  <span className="font-medium">{item.category}</span>
-                  <span className="text-gray-600">{item.count} mentions ({item.percentage}%)</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`${item.color} h-3 rounded-full transition-all`}
-                    style={{ width: `${item.percentage}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Trending Topics */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center mb-4">
-            <TrendingUp className="w-6 h-6 text-blue-600 mr-2" />
-            <h2 className="text-xl font-semibold">Trending Topics</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {['Price Increase', 'Supply Chain', 'Weather Impact', 'Export Demand', 'Harvest Season'].map((topic) => (
-              <span key={topic} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                {topic}
-              </span>
-            ))}
           </div>
         </div>
 
@@ -73,31 +85,31 @@ export default function SentimentPage() {
             <h2 className="text-xl font-semibold">Recent News & Analysis</h2>
           </div>
           <div className="space-y-4">
-            {newsItems.map((news, index) => (
+            {sentimentData?.articles?.map((news: any, index: number) => (
               <div key={index} className="border-b pb-4 last:border-b-0">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-1">{news.title}</h3>
+                    <h3 className="font-semibold text-lg mb-1">{news.headline}</h3>
                     <div className="flex items-center text-sm text-gray-600">
                       <span>{news.source}</span>
                       <span className="mx-2">•</span>
-                      <span>{news.date}</span>
+                      <span>{new Date(news.published_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      news.sentiment === 'positive'
-                        ? 'bg-green-100 text-green-700'
-                        : news.sentiment === 'neutral'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSentimentColor(news.sentiment)}`}>
                     {news.sentiment}
                   </span>
                 </div>
               </div>
-            ))}
+            )) || (
+              <div className="text-center text-gray-500 py-8">No recent articles found</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
           </div>
         </div>
       </div>

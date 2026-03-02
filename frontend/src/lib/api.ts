@@ -352,3 +352,70 @@ export const dashboardAPI = {
     }
   },
 };
+
+// Copilot API
+export const copilotAPI = {
+  async chat(message: string, userId?: string): Promise<{
+    response: string;
+    confidence: number;
+    timestamp: string;
+  }> {
+    try {
+      const response = await api.post<{
+        response: string;
+        confidence: number;
+        timestamp: string;
+      }>('/copilot/chat', {
+        message,
+        user_id: userId || 'anonymous',
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Copilot API error:', error);
+      throw error;
+    }
+  },
+};
+
+// Insights API
+export const insightsAPI = {
+  async getInsights(commodities?: string[]): Promise<{
+    opportunities: Array<{title: string; description: string; impact: string; commodity: string}>;
+    risks: Array<{title: string; description: string; severity: string; commodity: string}>;
+    recommendations: Array<{action: string; commodity: string; confidence: number; reasoning: string}>;
+  }> {
+    try {
+      const response = await api.post<{
+        opportunities: Array<{title: string; description: string; impact: string; commodity: string}>;
+        risks: Array<{title: string; description: string; severity: string; commodity: string}>;
+        recommendations: Array<{action: string; commodity: string; confidence: number; reasoning: string}>;
+      }>('/insights/generate', {
+        commodities: commodities || [],
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Insights API error:', error);
+      throw error;
+    }
+  },
+
+  async getCommoditySentiment(commodity: string): Promise<{
+    overall_sentiment: string;
+    sentiment_score: number;
+    article_count: number;
+    articles: Array<{headline: string; sentiment: string; source: string; published_at: string}>;
+  }> {
+    try {
+      const response = await api.get<{
+        overall_sentiment: string;
+        sentiment_score: number;
+        article_count: number;
+        articles: Array<{headline: string; sentiment: string; source: string; published_at: string}>;
+      }>(`/sentiment/commodity/${commodity}`);
+      return response.data;
+    } catch (error) {
+      console.error('Sentiment API error:', error);
+      throw error;
+    }
+  },
+};

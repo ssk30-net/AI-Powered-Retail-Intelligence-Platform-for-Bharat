@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, Bot, User } from 'lucide-react';
+import { Send, Bot, User, Loader } from 'lucide-react';
+import { copilotAPI } from '@/lib/api';
 
 export default function CopilotPage() {
   const [messages, setMessages] = useState([
@@ -11,24 +12,36 @@ export default function CopilotPage() {
     },
   ]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
 
     // Add user message
     const userMessage = { role: 'user', content: input };
     setMessages([...messages, userMessage]);
+    setInput('');
+    setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Call real AI backend
+      const response = await copilotAPI.chat(input);
+      
       const aiResponse = {
         role: 'assistant',
-        content: 'Based on current market data, I can help you with that. This is a demo response. In production, this would connect to the AI backend.',
+        content: response.response,
       };
       setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
-
-    setInput('');
+    } catch (error) {
+      console.error('Error calling copilot API:', error);
+      const errorResponse = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request. Please try again later.',
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -82,15 +95,21 @@ export default function CopilotPage() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
                 placeholder="Ask me anything about the market..."
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSend}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+                disabled={isLoading || !input.trim()}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                <Send className="w-5 h-5" />
+                {isLoading ? (
+                  <Loader className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
