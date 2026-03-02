@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Smile, Meh, Frown, TrendingUp, MessageSquare, Loader } from 'lucide-react';
+import { Smile, Meh, Frown, MessageSquare, Loader } from 'lucide-react';
 import { insightsAPI } from '@/lib/api';
 
 export default function SentimentPage() {
@@ -104,12 +104,6 @@ export default function SentimentPage() {
             )) || (
               <div className="text-center text-gray-500 py-8">No recent articles found</div>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
           </div>
         </div>
       </div>
