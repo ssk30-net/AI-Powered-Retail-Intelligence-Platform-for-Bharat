@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
+import xgboost as xgb
 import numpy as np
 import json
 import logging
@@ -32,9 +33,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Model paths
+# Model paths (prefer native XGBoost JSON when present)
 MODEL_DIR = Path(__file__).parent / "models"
-MODEL_PATH = MODEL_DIR / "xgboost_price_predictor.pkl"
+MODEL_JSON_PATH = MODEL_DIR / "model.json"
+MODEL_PKL_PATH = MODEL_DIR / "xgboost_price_predictor.pkl"
 SCALER_PATH = MODEL_DIR / "scaler.pkl"
 FEATURE_NAMES_PATH = MODEL_DIR / "feature_names.json"
 METRICS_PATH = MODEL_DIR / "metrics.json"
@@ -85,9 +87,9 @@ async def load_model():
     try:
         logger.info("Loading model artifacts...")
         
-        # Check if model files exist
-        if not MODEL_PATH.exists():
-            logger.error(f"Model file not found: {MODEL_PATH}")
+        # Check if model files exist (native JSON or pkl)
+        if not MODEL_JSON_PATH.exists() and not MODEL_PKL_PATH.exists():
+            logger.error(f"Model file not found: {MODEL_JSON_PATH} or {MODEL_PKL_PATH}")
             raise FileNotFoundError(f"Model file not found. Please train the model first using RUN_ALL_ML_STEPS.bat")
         
         if not SCALER_PATH.exists():
@@ -98,9 +100,14 @@ async def load_model():
             logger.error(f"Feature names file not found: {FEATURE_NAMES_PATH}")
             raise FileNotFoundError(f"Feature names file not found. Please train the model first.")
         
-        # Load model
-        model = joblib.load(MODEL_PATH)
-        logger.info(f"✓ Model loaded from {MODEL_PATH}")
+        # Load model (prefer native model.json, fallback to .pkl)
+        if MODEL_JSON_PATH.exists():
+            model = xgb.XGBRegressor()
+            model.load_model(str(MODEL_JSON_PATH))
+            logger.info(f"✓ Model loaded from {MODEL_JSON_PATH}")
+        else:
+            model = joblib.load(MODEL_PKL_PATH)
+            logger.info(f"✓ Model loaded from {MODEL_PKL_PATH}")
         
         # Load scaler
         scaler = joblib.load(SCALER_PATH)

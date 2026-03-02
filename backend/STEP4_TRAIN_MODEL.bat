@@ -79,7 +79,8 @@ echo.
 echo Model artifacts saved to: models/
 echo.
 echo Files created:
-echo   • xgboost_price_predictor.pkl (trained model)
+echo   • xgboost_price_predictor.pkl (trained model, joblib)
+echo   • model.json (trained model, XGBoost native)
 echo   • scaler.pkl (feature scaler)
 echo   • feature_names.json (feature list)
 echo   • metrics.json (performance metrics)

@@ -6,6 +6,7 @@ Test predictions with sample data before deployment
 import pandas as pd
 import numpy as np
 import joblib
+import xgboost as xgb
 import json
 import os
 import logging
@@ -26,17 +27,24 @@ class ModelTester:
         self.feature_names = None
         
     def load_model(self):
-        """Load trained model and artifacts"""
+        """Load trained model and artifacts (prefer native model.json, else .pkl)"""
         logger.info("Loading model artifacts...")
         
-        model_path = os.path.join(self.model_dir, 'xgboost_price_predictor.pkl')
+        model_json_path = os.path.join(self.model_dir, 'model.json')
+        model_pkl_path = os.path.join(self.model_dir, 'xgboost_price_predictor.pkl')
         scaler_path = os.path.join(self.model_dir, 'scaler.pkl')
         feature_path = os.path.join(self.model_dir, 'feature_names.json')
         
-        if not os.path.exists(model_path):
+        if not os.path.exists(model_json_path) and not os.path.exists(model_pkl_path):
             raise FileNotFoundError("Model not found! Run STEP4_TRAIN_MODEL.bat first")
         
-        self.model = joblib.load(model_path)
+        if os.path.exists(model_json_path):
+            self.model = xgb.XGBRegressor()
+            self.model.load_model(model_json_path)
+            logger.info(f"✓ Model loaded from {model_json_path}")
+        else:
+            self.model = joblib.load(model_pkl_path)
+            logger.info(f"✓ Model loaded from {model_pkl_path}")
         self.scaler = joblib.load(scaler_path)
         
         with open(feature_path, 'r') as f:

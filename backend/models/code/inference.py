@@ -1,11 +1,18 @@
 import json
 import os
 import joblib
+import xgboost as xgb
 import numpy as np
 
 def model_fn(model_dir):
-    """Load the model and artifacts from the model directory."""
-    model = joblib.load(os.path.join(model_dir, "xgboost_price_predictor.pkl"))
+    """Load the model and artifacts from the model directory (prefer model.json, else .pkl)."""
+    model_json = os.path.join(model_dir, "model.json")
+    model_pkl = os.path.join(model_dir, "xgboost_price_predictor.pkl")
+    if os.path.exists(model_json):
+        model = xgb.XGBRegressor()
+        model.load_model(model_json)
+    else:
+        model = joblib.load(model_pkl)
     scaler = joblib.load(os.path.join(model_dir, "scaler.pkl"))
     
     with open(os.path.join(model_dir, "feature_names.json"), "r") as f:

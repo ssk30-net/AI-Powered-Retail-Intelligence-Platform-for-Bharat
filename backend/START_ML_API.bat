@@ -20,8 +20,8 @@ REM Activate virtual environment
 echo Activating virtual environment...
 call venv\Scripts\activate.bat
 
-REM Check if model exists
-if not exist "models\xgboost_price_predictor.pkl" (
+REM Check if model exists (native model.json or .pkl)
+if not exist "models\model.json" if not exist "models\xgboost_price_predictor.pkl" (
     echo.
     echo ERROR: Trained model not found!
     echo Please run RUN_ALL_ML_STEPS.bat first to train the model

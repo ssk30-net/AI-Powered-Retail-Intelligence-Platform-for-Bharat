@@ -92,9 +92,12 @@ class SageMakerDeployer:
         model_tar = os.path.join(self.model_dir, 'model.tar.gz')
         
         with tarfile.open(model_tar, 'w:gz') as tar:
-            # Add model file
-            model_file = os.path.join(self.model_dir, 'xgboost_price_predictor.pkl')
-            tar.add(model_file, arcname='xgboost_price_predictor.pkl')
+            # Add model file (native JSON preferred at runtime; keep .pkl for backward compatibility)
+            model_json = os.path.join(self.model_dir, 'model.json')
+            if os.path.exists(model_json):
+                tar.add(model_json, arcname='model.json')
+            model_pkl = os.path.join(self.model_dir, 'xgboost_price_predictor.pkl')
+            tar.add(model_pkl, arcname='xgboost_price_predictor.pkl')
             
             # Add scaler
             scaler_file = os.path.join(self.model_dir, 'scaler.pkl')

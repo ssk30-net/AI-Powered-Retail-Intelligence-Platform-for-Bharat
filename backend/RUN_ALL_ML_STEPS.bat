@@ -196,7 +196,8 @@ echo     • test_data.csv
 echo     • feature_names.json
 echo.
 echo   models/
-echo     • xgboost_price_predictor.pkl
+echo     • xgboost_price_predictor.pkl (joblib)
+echo     • model.json (XGBoost native)
 echo     • scaler.pkl
 echo     • feature_names.json
 echo     • metrics.json

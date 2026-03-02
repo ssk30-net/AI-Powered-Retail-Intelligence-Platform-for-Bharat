@@ -199,10 +199,15 @@ class ModelTrainer:
         """Save model and artifacts"""
         logger.info("\nSaving model artifacts...")
         
-        # Save model
+        # Save model (joblib .pkl - kept for backward compatibility)
         model_path = os.path.join(self.model_dir, 'xgboost_price_predictor.pkl')
         joblib.dump(self.model, model_path)
         logger.info(f"✓ Model saved: {model_path}")
+        
+        # Save model in XGBoost native JSON format
+        model_json_path = os.path.join(self.model_dir, 'model.json')
+        self.model.save_model(model_json_path)
+        logger.info(f"✓ Model saved (native): {model_json_path}")
         
         # Save scaler
         scaler_path = os.path.join(self.model_dir, 'scaler.pkl')
@@ -269,6 +274,7 @@ class ModelTrainer:
         
         logger.info(f"\nModel Files:")
         logger.info(f"  • models/xgboost_price_predictor.pkl")
+        logger.info(f"  • models/model.json (XGBoost native)")
         logger.info(f"  • models/scaler.pkl")
         logger.info(f"  • models/feature_names.json")
         logger.info(f"  • models/metrics.json")
