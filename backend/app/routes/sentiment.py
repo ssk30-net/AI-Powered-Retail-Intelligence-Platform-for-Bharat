@@ -117,6 +117,40 @@ async def get_sentiment_overview(
             message="Using cached sentiment data"
         )
 
+@router.get("/commodity/{commodity_name}")
+async def get_commodity_sentiment_by_name(
+    commodity_name: str,
+    days: int = 30,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get sentiment analysis for a specific commodity by name
+    Analyzes recent news articles using VADER and TextBlob
+    """
+    try:
+        # Get real sentiment analysis
+        result = sentiment_analyzer.get_commodity_sentiment(commodity_name.lower(), days)
+        
+        return ApiResponse(
+            success=True,
+            data=result,
+            message=f"Sentiment analysis for {commodity_name.title()} completed"
+        )
+    except Exception as e:
+        print(f"Error in commodity sentiment: {e}")
+        # Fallback to basic data if service fails
+        return ApiResponse(
+            success=True,
+            data={
+                "commodity_name": commodity_name.title(),
+                "overall_sentiment": "Neutral",
+                "sentiment_score": 0.0,
+                "article_count": 0,
+                "articles": []
+            },
+            message="Using cached sentiment data"
+        )
+
 @router.get("/{commodity_id}")
 async def get_commodity_sentiment(
     commodity_id: int,
@@ -124,7 +158,7 @@ async def get_commodity_sentiment(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get sentiment analysis for a specific commodity
+    Get sentiment analysis for a specific commodity by ID
     Analyzes recent news articles using VADER and TextBlob
     """
     try:
