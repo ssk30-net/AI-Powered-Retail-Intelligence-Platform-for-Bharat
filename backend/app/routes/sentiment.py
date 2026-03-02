@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from app.core.database import get_db
 from app.core.security import get_current_user
 from app.schemas.response import ApiResponse
 from app.services.sentiment_analyzer import sentiment_analyzer
+from app.models.sentiment_data import SentimentData
 
 router = APIRouter()
 
@@ -15,6 +18,67 @@ COMMODITY_MAP = {
     6: "corn",
     7: "soybean"
 }
+
+@router.get("")
+async def get_sentiment(
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all sentiment data"""
+    try:
+        sentiment_records = db.query(SentimentData).order_by(SentimentData.published_at.desc()).limit(limit).all()
+        
+        return ApiResponse(
+            success=True,
+            data=[{
+                "id": s.id,
+                "commodity_id": s.commodity_id,
+                "headline": s.headline,
+                "sentiment_score": float(s.sentiment_score),
+                "sentiment_label": s.sentiment_label,
+                "published_at": s.published_at.isoformat() if s.published_at else None,
+                "source": s.source
+            } for s in sentiment_records]
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            data=[],
+            message=f"Error fetching sentiment data: {str(e)}"
+        )
+
+@router.get("/commodity/{commodity_id}")
+async def get_commodity_sentiment_data(
+    commodity_id: int,
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get sentiment data for a specific commodity"""
+    try:
+        sentiment_records = db.query(SentimentData).filter(
+            SentimentData.commodity_id == commodity_id
+        ).order_by(SentimentData.published_at.desc()).limit(limit).all()
+        
+        return ApiResponse(
+            success=True,
+            data=[{
+                "id": s.id,
+                "commodity_id": s.commodity_id,
+                "headline": s.headline,
+                "sentiment_score": float(s.sentiment_score),
+                "sentiment_label": s.sentiment_label,
+                "published_at": s.published_at.isoformat() if s.published_at else None,
+                "source": s.source
+            } for s in sentiment_records]
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            data=[],
+            message=f"Error fetching sentiment data: {str(e)}"
+        )
 
 @router.get("/overview")
 async def get_sentiment_overview(

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, dashboard, forecasts, sentiment, price_sensitivity, copilot, alerts, insights, data_upload
+from app.routes import auth, dashboard, forecasts, sentiment, price_sensitivity, copilot, alerts, insights, data_upload, commodities, regions
 from app.core.config import settings
 
 app = FastAPI(
@@ -20,6 +20,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(commodities.router, prefix="/api/v1/commodities", tags=["Commodities"])
+app.include_router(regions.router, prefix="/api/v1/regions", tags=["Regions"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(forecasts.router, prefix="/api/v1/forecasts", tags=["Forecasts"])
 app.include_router(sentiment.router, prefix="/api/v1/sentiment", tags=["Sentiment"])
