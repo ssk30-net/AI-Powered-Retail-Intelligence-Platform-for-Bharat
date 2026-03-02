@@ -27,34 +27,36 @@ async def get_dashboard_overview(
             "risk_level": "low",
         }
         top_commodities = []
+        top_gainers = []
+        top_losers = []
         recent_alerts = []
 
-        # Latest price per commodity (from price_history)
-        subq = (
-            db.query(
-                PriceHistory.commodity_id,
-                func.max(PriceHistory.recorded_at).label("max_at"),
-            )
-            .group_by(PriceHistory.commodity_id)
-        ).subquery()
-        latest_prices = (
-            db.query(PriceHistory, Commodity.name)
-            .join(Commodity, PriceHistory.commodity_id == Commodity.id)
-            .join(subq, (PriceHistory.commodity_id == subq.c.commodity_id) & (PriceHistory.recorded_at == subq.c.max_at))
-            .limit(10)
+        # Build one latest row per commodity explicitly to avoid duplicate-region skew.
+        commodity_rows = (
+            db.query(Commodity.id, Commodity.name)
+            .join(PriceHistory, PriceHistory.commodity_id == Commodity.id)
+            .distinct()
             .all()
         )
-        if latest_prices:
-            # Simple price change: compare to 7 days ago if available
+        if commodity_rows:
             top_commodities = []
-            for ph, name in latest_prices:
+            for commodity_id, commodity_name in commodity_rows:
+                ph = (
+                    db.query(PriceHistory)
+                    .filter(PriceHistory.commodity_id == commodity_id)
+                    .order_by(desc(PriceHistory.recorded_at), desc(PriceHistory.id))
+                    .limit(1)
+                    .first()
+                )
+                if not ph:
+                    continue
                 prev = (
                     db.query(PriceHistory.price)
                     .filter(
-                        PriceHistory.commodity_id == ph.commodity_id,
+                        PriceHistory.commodity_id == commodity_id,
                         PriceHistory.recorded_at < ph.recorded_at,
                     )
-                    .order_by(desc(PriceHistory.recorded_at))
+                    .order_by(desc(PriceHistory.recorded_at), desc(PriceHistory.id))
                     .limit(1)
                     .first()
                 )
@@ -62,23 +64,28 @@ async def get_dashboard_overview(
                 if prev and float(prev.price) != 0:
                     change = ((float(ph.price) - float(prev.price)) / float(prev.price)) * 100
                 top_commodities.append({
-                    "id": ph.commodity_id,
-                    "name": name or "Commodity",
+                    "id": commodity_id,
+                    "name": commodity_name or "Commodity",
                     "price": float(ph.price),
                     "change": round(change, 1),
                 })
+            top_commodities = sorted(top_commodities, key=lambda x: x["price"], reverse=True)
             if top_commodities:
                 avg_change = sum(c["change"] for c in top_commodities) / len(top_commodities)
                 kpis["price_change_percent"] = round(avg_change, 1)
                 kpis["demand_index"] = min(100, max(0, 50 + int(avg_change * 2)))
                 kpis["sentiment_score"] = round(0.5 + (avg_change / 100), 2)
                 kpis["risk_level"] = "high" if abs(avg_change) > 10 else "medium" if abs(avg_change) > 5 else "low"
+                top_gainers = sorted(top_commodities, key=lambda x: x["change"], reverse=True)[:3]
+                top_losers = sorted(top_commodities, key=lambda x: x["change"])[:3]
 
         return ApiResponse(
             success=True,
             data={
                 "kpis": kpis,
                 "top_commodities": top_commodities[:5],
+                "top_gainers": top_gainers,
+                "top_losers": top_losers,
                 "recent_alerts": recent_alerts,
             },
         )
@@ -93,6 +100,8 @@ async def get_dashboard_overview(
                     "risk_level": "low",
                 },
                 "top_commodities": [],
+                "top_gainers": [],
+                "top_losers": [],
                 "recent_alerts": [],
             },
             message=f"Using defaults: {str(e)}",
@@ -179,17 +188,23 @@ async def get_price_trends(
         for cid in ids[:10]:
             comm = db.query(Commodity).filter(Commodity.id == cid).first()
             name = comm.name if comm else f"Commodity {cid}"
+            day = func.date(PriceHistory.recorded_at)
             rows = (
-                db.query(PriceHistory.recorded_at, PriceHistory.price)
+                db.query(
+                    day.label("day"),
+                    func.avg(PriceHistory.price).label("avg_price"),
+                )
                 .filter(
                     PriceHistory.commodity_id == cid,
                     PriceHistory.recorded_at >= since,
                 )
-                .order_by(PriceHistory.recorded_at)
+                .group_by(day)
+                .order_by(day)
+                .limit(days)
                 .all()
             )
             data_points = [
-                {"date": r.recorded_at.strftime("%Y-%m-%d") if r.recorded_at else None, "price": float(r.price)}
+                {"date": r.day.strftime("%Y-%m-%d") if r.day else None, "price": float(r.avg_price)}
                 for r in rows
             ]
             trends.append({

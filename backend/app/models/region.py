@@ -8,7 +8,6 @@ class Region(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
     state = Column(String(100), index=True)
-    type = Column(String(50))  # Added for compatibility
     country = Column(String(100), default='India')
     latitude = Column(Numeric(10, 8))
     longitude = Column(Numeric(11, 8))

@@ -15,6 +15,8 @@ interface DashboardOverview {
     risk_level: string;
   };
   top_commodities: Array<{ id: number; name: string; price: number; change: number }>;
+  top_gainers: Array<{ id: number; name: string; price: number; change: number }>;
+  top_losers: Array<{ id: number; name: string; price: number; change: number }>;
   recent_alerts: unknown[];
 }
 
@@ -34,6 +36,8 @@ const defaultOverview: DashboardOverview = {
     risk_level: 'low',
   },
   top_commodities: [],
+  top_gainers: [],
+  top_losers: [],
   recent_alerts: [],
 };
 
@@ -49,12 +53,17 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
-        const [overviewRes, trendsRes] = await Promise.all([
-          api.get<DashboardOverview>('/dashboard/overview'),
-          api.get<{ trends: PriceTrendsResponse['trends'] }>('/dashboard/price-trends?commodity_ids=1,2,3&days=30'),
-        ]);
-        if (!cancelled && overviewRes.data) setOverview(overviewRes.data);
-        if (!cancelled && trendsRes.data?.trends) setTrends(trendsRes.data.trends);
+        const overviewRes = await api.get<DashboardOverview>('/dashboard/overview');
+        const overviewData = overviewRes?.data ?? defaultOverview;
+        const trendCommodityId =
+          overviewData.top_gainers?.[0]?.id ??
+          overviewData.top_commodities?.[0]?.id ??
+          1;
+        const trendsRes = await api.get<{ trends: PriceTrendsResponse['trends'] }>(
+          `/dashboard/price-trends?commodity_ids=${trendCommodityId}&days=21`
+        );
+        if (!cancelled) setOverview(overviewData);
+        if (!cancelled) setTrends(trendsRes.data?.trends ?? []);
       } catch (e: unknown) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load dashboard');
         setOverview(defaultOverview);
@@ -67,7 +76,7 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const { kpis, top_commodities } = overview;
+  const { kpis, top_gainers, top_losers } = overview;
   const chartData = trends[0]?.data_points?.length
     ? trends[0].data_points.map((d) => ({ month: d.date?.slice(5) || d.date, value: d.price, forecast: d.price }))
     : [];
@@ -167,27 +176,49 @@ export default function DashboardPage() {
 
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Top commodities (RDS)</h3>
-            <p className="text-sm text-gray-600">Latest prices from database</p>
+            <h3 className="text-lg font-semibold text-gray-900">Top movers (RDS)</h3>
+            <p className="text-sm text-gray-600">Top 3 gainers and losers</p>
           </div>
-          {top_commodities.length > 0 ? (
-            <div className="space-y-3">
-              {top_commodities.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between p-3 border border-gray-100 rounded-lg"
-                >
-                  <span className="font-medium text-gray-900">{c.name}</span>
-                  <div className="text-right">
-                    <span className="font-semibold">₹{Number(c.price).toLocaleString()}</span>
-                    <span
-                      className={`ml-2 text-sm ${c.change >= 0 ? 'text-green-600' : 'text-red-600'}`}
+          {top_gainers.length > 0 || top_losers.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-semibold text-green-700 mb-2">Top 3 Gainers</p>
+                <div className="space-y-2">
+                  {top_gainers.map((c, index) => (
+                    <div
+                      key={`gainer-${c.id}-${index}`}
+                      className="flex items-center justify-between p-3 border border-green-100 rounded-lg"
                     >
-                      {c.change >= 0 ? '+' : ''}{c.change}%
-                    </span>
-                  </div>
+                      <span className="font-medium text-gray-900">{c.name}</span>
+                      <div className="text-right">
+                        <span className="font-semibold">₹{Number(c.price).toLocaleString()}</span>
+                        <span className="ml-2 text-sm text-green-600">
+                          +{Math.abs(Number(c.change)).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-red-700 mb-2">Top 3 Losers</p>
+                <div className="space-y-2">
+                  {top_losers.map((c, index) => (
+                    <div
+                      key={`loser-${c.id}-${index}`}
+                      className="flex items-center justify-between p-3 border border-red-100 rounded-lg"
+                    >
+                      <span className="font-medium text-gray-900">{c.name}</span>
+                      <div className="text-right">
+                        <span className="font-semibold">₹{Number(c.price).toLocaleString()}</span>
+                        <span className="ml-2 text-sm text-red-600">
+                          -{Math.abs(Number(c.change)).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="h-[200px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
