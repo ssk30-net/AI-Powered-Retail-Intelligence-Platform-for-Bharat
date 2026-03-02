@@ -197,11 +197,19 @@ class SentimentAnalyzer:
             'negative': round((negative / total) * 100, 1) if total > 0 else 0
         }
         
+        # Extract real trending topics from all articles
+        all_articles = []
+        for sentiment in commodity_sentiments:
+            if 'recent_news' in sentiment:
+                all_articles.extend(sentiment.get('recent_news', []))
+        
+        trending_topics = self._extract_topics(all_articles, top_n=5)
+        
         return {
             'overall_sentiment': round(avg_sentiment, 3),
             'sentiment_distribution': distribution,
             'commodity_sentiments': commodity_sentiments,
-            'trending_topics': ['supply chain', 'harvest season', 'export demand', 'monsoon', 'government policy'],
+            'trending_topics': trending_topics,
             'market_mood': 'bullish' if avg_sentiment > 0.1 else 'bearish' if avg_sentiment < -0.1 else 'neutral',
             'last_updated': datetime.utcnow().isoformat()
         }
@@ -215,22 +223,35 @@ class SentimentAnalyzer:
         return text
     
     def _extract_topics(self, articles: List[Dict], top_n: int = 5) -> List[str]:
-        """Extract trending topics from articles"""
-        # Combine all titles
-        all_text = ' '.join([a['title'] for a in articles])
+        """Extract trending topics from articles using real NLP"""
+        if not articles:
+            return []
         
-        # Simple keyword extraction (in production, use TF-IDF or better methods)
-        keywords = ['supply', 'demand', 'price', 'export', 'import', 'harvest', 
-                   'production', 'market', 'government', 'monsoon', 'crop', 'trade']
+        # Combine all titles and summaries
+        all_text = ' '.join([f"{a.get('title', '')} {a.get('summary', '')}" for a in articles])
+        all_text_lower = all_text.lower()
         
-        found_topics = []
-        for keyword in keywords:
-            if keyword in all_text.lower():
-                found_topics.append(keyword)
-                if len(found_topics) >= top_n:
-                    break
+        # Define topic keywords with their variations
+        topic_keywords = {
+            'Price Increase': ['price increase', 'rising price', 'price surge', 'price hike', 'expensive', 'costlier'],
+            'Supply Chain': ['supply chain', 'logistics', 'transportation', 'distribution', 'supply disruption'],
+            'Weather Impact': ['weather', 'rain', 'monsoon', 'drought', 'flood', 'climate', 'temperature'],
+            'Export Demand': ['export', 'international', 'overseas', 'foreign demand', 'global market'],
+            'Harvest Season': ['harvest', 'crop', 'yield', 'production', 'sowing', 'reaping'],
+            'Government Policy': ['government', 'policy', 'regulation', 'subsidy', 'MSP', 'procurement'],
+            'Market Demand': ['demand', 'buying', 'consumption', 'shortage', 'surplus']
+        }
         
-        return found_topics if found_topics else ['market trends', 'pricing', 'supply chain']
+        # Count occurrences of each topic
+        topic_scores = {}
+        for topic, keywords in topic_keywords.items():
+            count = sum(all_text_lower.count(kw) for kw in keywords)
+            if count > 0:
+                topic_scores[topic] = count
+        
+        # Sort by frequency and return top N
+        sorted_topics = sorted(topic_scores.items(), key=lambda x: x[1], reverse=True)
+        return [topic for topic, _ in sorted_topics[:top_n]]
     
     def _generate_trend(self, current_sentiment: float, days: int) -> List[Dict]:
         """Generate historical sentiment trend (simulated)"""

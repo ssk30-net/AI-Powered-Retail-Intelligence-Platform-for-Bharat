@@ -1,367 +1,316 @@
 """
 Market Insights & Recommendations Engine
-Generates actionable insights and recommendations based on market data
+Generates actionable insights and recommendations based on REAL market data
 """
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-import random
+from .sentiment_analyzer import sentiment_analyzer
 
 class InsightsEngine:
     def __init__(self):
-        # Historical patterns and thresholds
-        self.thresholds = {
-            'price_surge': 0.10,  # 10% increase
-            'price_drop': -0.10,   # 10% decrease
-            'high_volatility': 0.15,
-            'sentiment_bullish': 0.3,
-            'sentiment_bearish': -0.3,
-            'high_demand': 75,
-            'low_supply': 30
-        }
+        self.commodities = ['wheat', 'rice', 'corn', 'onion', 'tomato', 'potato', 'soybean']
         
-        # Commodities for analysis
-        self.commodities = [
-            {'id': 1, 'name': 'Wheat', 'category': 'Grains', 'avg_price': 2500},
-            {'id': 2, 'name': 'Rice', 'category': 'Grains', 'avg_price': 3200},
-            {'id': 3, 'name': 'Onion', 'category': 'Vegetables', 'avg_price': 1800},
-            {'id': 4, 'name': 'Tomato', 'category': 'Vegetables', 'avg_price': 2200},
-            {'id': 5, 'name': 'Potato', 'category': 'Vegetables', 'avg_price': 1500}
-        ]
-    
     def generate_insights_overview(self) -> Dict:
         """
-        Generate comprehensive market insights overview
+        Generate comprehensive market insights based on real sentiment analysis
         """
-        # Generate various types of insights
-        opportunities = self._identify_opportunities()
-        risks = self._identify_risks()
-        recommendations = self._generate_recommendations()
-        performance_summary = self._analyze_performance()
+        # Get real sentiment data for all commodities
+        sentiment_data = {}
+        for commodity in self.commodities[:5]:  # Analyze top 5 to avoid rate limits
+            try:
+                data = sentiment_analyzer.get_commodity_sentiment(commodity, days=7)
+                sentiment_data[commodity] = data
+            except Exception as e:
+                print(f"Error getting sentiment for {commodity}: {e}")
+                continue
+        
+        # Generate insights based on real data
+        opportunities = self._identify_opportunities(sentiment_data)
+        risks = self._identify_risks(sentiment_data)
+        recommendations = self._generate_recommendations(sentiment_data)
         
         return {
-            'market_opportunities': opportunities[:5],
-            'market_risks': risks[:3],
-            'top_recommendations': recommendations[:5],
-            'performance_summary': performance_summary,
+            'market_opportunities': opportunities,
+            'market_risks': risks,
+            'top_recommendations': recommendations,
             'insights_count': len(opportunities) + len(risks),
             'last_updated': datetime.utcnow().isoformat()
         }
     
-    def _identify_opportunities(self) -> List[Dict]:
+    def _identify_opportunities(self, sentiment_data: Dict) -> List[Dict]:
         """
-        Identify bullish opportunities in the market
+        Identify real opportunities based on sentiment analysis
         """
         opportunities = []
         
-        # Opportunity 1: Price Arbitrage
-        opportunities.append({
-            'id': 'opp_1',
-            'type': 'arbitrage',
-            'title': 'Regional Price Arbitrage Opportunity',
-            'description': 'Wheat prices show 8% differential between Punjab (INR 2,650) and Karnataka (INR 2,420). '
-                          'Transportation costs are favorable for bulk movement.',
-            'commodity': 'Wheat',
-            'potential_gain': '6-8%',
-            'confidence': 0.85,
-            'risk_level': 'medium',
-            'time_horizon': '7-14 days',
-            'action_items': [
-                'Verify transportation logistics',
-                'Check storage availability in target region',
-                'Monitor price trends daily'
-            ],
-            'impact': 'high',
-            'urgency': 'high'
-        })
+        for commodity, data in sentiment_data.items():
+            sentiment_score = data.get('current_sentiment', 0)
+            sentiment_label = data.get('sentiment_label', 'neutral')
+            article_count = data.get('article_count', 0)
+            articles = data.get('recent_news', [])
+            
+            # Opportunity 1: Strong positive sentiment (potential price increase)
+            if sentiment_score > 0.3 and article_count >= 3:
+                # Count positive articles
+                positive_count = sum(1 for a in articles if a.get('sentiment') == 'positive')
+                positive_pct = (positive_count / len(articles) * 100) if articles else 0
+                
+                # Extract key topics from positive articles
+                positive_articles = [a for a in articles if a.get('sentiment') == 'positive']
+                topics = self._extract_article_topics(positive_articles)
+                topic_str = ', '.join(topics[:3]) if topics else 'market dynamics'
+                
+                opportunities.append({
+                    'type': 'bullish_sentiment',
+                    'title': f'{commodity.title()} Shows Strong Market Momentum',
+                    'description': f'{commodity.title()} has {positive_pct:.0f}% positive news coverage based on {article_count} recent articles. '
+                                  f'Key drivers: {topic_str}. This indicates potential upward price movement.',
+                    'commodity': commodity.title(),
+                    'impact': 'High' if sentiment_score > 0.5 else 'Medium',
+                    'confidence': min(0.95, float(data.get('confidence', 0.7)) + (article_count * 0.02)),
+                    'data_points': article_count
+                })
+            
+            # Opportunity 2: Rising sentiment trend (momentum building)
+            elif 0.1 < sentiment_score <= 0.3 and article_count >= 5:
+                opportunities.append({
+                    'type': 'emerging_opportunity',
+                    'title': f'Emerging Opportunity in {commodity.title()}',
+                    'description': f'{commodity.title()} showing moderate positive sentiment (score: {sentiment_score:.2f}). '
+                                  f'Based on {article_count} articles analyzed. Early indicators suggest growing market interest.',
+                    'commodity': commodity.title(),
+                    'impact': 'Medium',
+                    'confidence': 0.72,
+                    'data_points': article_count
+                })
+            
+            # Opportunity 3: High article volume (market attention)
+            if article_count > 15:
+                opportunities.append({
+                    'type': 'high_attention',
+                    'title': f'High Market Activity for {commodity.title()}',
+                    'description': f'Significant market attention with {article_count} news articles in past week. '
+                                  f'Increased media coverage often precedes price volatility and trading opportunities. '
+                                  f'Current sentiment: {sentiment_label}.',
+                    'commodity': commodity.title(),
+                    'impact': 'Medium',
+                    'confidence': 0.78,
+                    'data_points': article_count
+                })
         
-        # Opportunity 2: Seasonal Demand
-        opportunities.append({
-            'id': 'opp_2',
-            'type': 'seasonal',
-            'title': 'Pre-Festive Season Demand Surge',
-            'description': 'Historical patterns indicate 12-15% price increase in rice and wheat ahead of festival season (30 days). '
-                          'Current inventory levels are moderate.',
-            'commodity': 'Rice, Wheat',
-            'potential_gain': '12-15%',
-            'confidence': 0.82,
-            'risk_level': 'low',
-            'time_horizon': '20-30 days',
-            'action_items': [
-                'Increase inventory by 20-30%',
-                'Lock supplier contracts',
-                'Monitor competitor stocking patterns'
-            ],
-            'impact': 'high',
-            'urgency': 'medium'
-        })
+        # Sort by impact and confidence
+        opportunities.sort(key=lambda x: (
+            1 if x['impact'] == 'High' else 0.5,
+            x.get('confidence', 0.5)
+        ), reverse=True)
         
-        # Opportunity 3: Export Market
-        opportunities.append({
-            'id': 'opp_3',
-            'type': 'export',
-            'title': 'Growing Export Demand from Southeast Asia',
-            'description': 'Export inquiries for Indian wheat have increased 25% in the last month. '
-                          'USD strengthening makes Indian produce more competitive.',
-            'commodity': 'Wheat',
-            'potential_gain': '10-12%',
-            'confidence': 0.78,
-            'risk_level': 'medium',
-            'time_horizon': '30-60 days',
-            'action_items': [
-                'Connect with export agents',
-                'Verify quality certifications',
-                'Assess logistics costs'
-            ],
-            'impact': 'medium',
-            'urgency': 'medium'
-        })
-        
-        # Opportunity 4: Government Procurement
-        opportunities.append({
-            'id': 'opp_4',
-            'type': 'procurement',
-            'title': 'Government Procurement Program Opens',
-            'description': 'MSP procurement season starting in 15 days. Government targets to procure 35 MMT of wheat. '
-                          'Guaranteed pricing available.',
-            'commodity': 'Wheat',
-            'potential_gain': 'Stable pricing + 5%',
-            'confidence': 0.95,
-            'risk_level': 'low',
-            'time_horizon': '15-45 days',
-            'action_items': [
-                'Register for procurement program',
-                'Ensure quality meets MSP standards',
-                'Prepare logistics for delivery'
-            ],
-            'impact': 'high',
-            'urgency': 'high'
-        })
-        
-        # Opportunity 5: Supply Constraint
-        opportunities.append({
-            'id': 'opp_5',
-            'type': 'supply_shortage',
-            'title': 'Vegetable Supply Constraints in South India',
-            'description': 'Unseasonal rains have disrupted tomato and onion supply in Karnataka. '
-                          'Prices expected to rise 15-20% in the next 2 weeks.',
-            'commodity': 'Tomato, Onion',
-            'potential_gain': '15-20%',
-            'confidence': 0.88,
-            'risk_level': 'high',
-            'time_horizon': '7-14 days',
-            'action_items': [
-                'Source from alternative regions',
-                'Monitor weather forecasts',
-                'Manage inventory turnover carefully'
-            ],
-            'impact': 'high',
-            'urgency': 'critical'
-        })
-        
-        return opportunities
+        return opportunities[:5]  # Return top 5
     
-    def _identify_risks(self) -> List[Dict]:
+    def _identify_risks(self, sentiment_data: Dict) -> List[Dict]:
         """
-        Identify potential risks in the market
+        Identify real risks based on sentiment analysis
         """
         risks = []
         
-        risks.append({
-            'id': 'risk_1',
-            'type': 'weather',
-            'title': 'Adverse Weather Forecast',
-            'description': 'Meteorological department predicts below-normal monsoon in key wheat-producing regions. '
-                          'This could impact next harvest by 8-10%.',
-            'affected_commodities': ['Wheat', 'Rice'],
-            'severity': 'high',
-            'probability': 0.65,
-            'time_horizon': '90-120 days',
-            'mitigation_strategies': [
-                'Diversify sourcing regions',
-                'Consider import options',
-                'Lock long-term contracts now'
-            ]
-        })
+        for commodity, data in sentiment_data.items():
+            sentiment_score = data.get('current_sentiment', 0)
+            article_count = data.get('article_count', 0)
+            articles = data.get('recent_news', [])
+            
+            # Risk 1: Strong negative sentiment
+            if sentiment_score < -0.2 and article_count >= 3:
+                negative_count = sum(1 for a in articles if a.get('sentiment') == 'negative')
+                negative_pct = (negative_count / len(articles) * 100) if articles else 0
+                
+                negative_articles = [a for a in articles if a.get('sentiment') == 'negative']
+                topics = self._extract_article_topics(negative_articles)
+                risk_factors = ', '.join(topics[:3]) if topics else 'market concerns'
+                
+                risks.append({
+                    'type': 'negative_sentiment',
+                    'title': f'{commodity.title()} Facing Market Headwinds',
+                    'description': f'{negative_pct:.0f}% of recent news coverage for {commodity} is negative '
+                                  f'({negative_count}/{article_count} articles). Risk factors: {risk_factors}. '
+                                  f'This may indicate downward price pressure.',
+                    'severity': 'High' if sentiment_score < -0.4 else 'Medium',
+                    'commodity': commodity.title(),
+                    'probability': min(0.9, abs(sentiment_score) + 0.3),
+                    'data_points': article_count
+                })
+            
+            # Risk 2: Mixed/volatile sentiment (uncertainty)
+            elif article_count >= 5:
+                sentiments = [a.get('sentiment') for a in articles]
+                positive = sentiments.count('positive')
+                negative = sentiments.count('negative')
+                neutral = sentiments.count('neutral')
+                
+                # High volatility = roughly equal positive and negative
+                if positive > 0 and negative > 0 and abs(positive - negative) <= 3:
+                    risks.append({
+                        'type': 'volatility',
+                        'title': f'High Volatility Expected in {commodity.title()}',
+                        'description': f'{commodity.title()} shows mixed market signals: '
+                                      f'{positive} positive, {negative} negative, {neutral} neutral articles. '
+                                      f'This divergence suggests increased price volatility ahead.',
+                        'severity': 'Medium',
+                        'commodity': commodity.title(),
+                        'probability': 0.65,
+                        'data_points': article_count
+                    })
+            
+            # Risk 3: Low coverage (uncertainty)
+            if article_count <= 2:
+                risks.append({
+                    'type': 'low_data',
+                    'title': f'Limited Market Data for {commodity.title()}',
+                    'description': f'Only {article_count} news articles found for {commodity}. '
+                                  f'Low media coverage may indicate reduced market liquidity or emerging supply issues. '
+                                  f'Proceed with caution.',
+                    'severity': 'Low',
+                    'commodity': commodity.title(),
+                    'probability': 0.50,
+                    'data_points': article_count
+                })
         
-        risks.append({
-            'id': 'risk_2',
-            'type': 'policy',
-            'title': 'Export Restriction Rumors',
-            'description': 'Government may impose export restrictions on wheat if domestic prices rise above INR 2,800/quintal. '
-                          'This could impact export-oriented traders.',
-            'affected_commodities': ['Wheat'],
-            'severity': 'medium',
-            'probability': 0.45,
-            'time_horizon': '30-60 days',
-            'mitigation_strategies': [
-                'Monitor government announcements',
-                'Balance domestic vs export sales',
-                'Maintain flexibility in contracts'
-            ]
-        })
+        # Sort by severity and probability
+        risks.sort(key=lambda x: (
+            1 if x['severity'] == 'High' else 0.5 if x['severity'] == 'Medium' else 0.2,
+            x.get('probability', 0.5)
+        ), reverse=True)
         
-        risks.append({
-            'id': 'risk_3',
-            'type': 'oversupply',
-            'title': 'Potato Oversupply Expected',
-            'description': 'Record potato acreage in Punjab and UP may lead to 15% oversupply, '
-                          'potentially causing 10-15% price correction.',
-            'affected_commodities': ['Potato'],
-            'severity': 'medium',
-            'probability': 0.70,
-            'time_horizon': '45-60 days',
-            'mitigation_strategies': [
-                'Reduce potato inventory',
-                'Explore processing options',
-                'Focus on other vegetables'
-            ]
-        })
-        
-        return risks
+        return risks[:5]  # Return top 5
     
-    def _generate_recommendations(self) -> List[Dict]:
+    def _generate_recommendations(self, sentiment_data: Dict) -> List[Dict]:
         """
-        Generate actionable recommendations
+        Generate actionable recommendations based on real data
         """
         recommendations = []
         
-        recommendations.append({
-            'id': 'rec_1',
-            'category': 'portfolio',
-            'title': 'Optimize Commodity Portfolio Mix',
-            'description': 'Current analysis suggests increasing wheat allocation to 35% (from 25%) and '
-                          'reducing potato exposure to 10% (from 20%).',
-            'rationale': 'Wheat shows strong fundamentals with government support and export demand. '
-                        'Potato faces oversupply risks.',
-            'expected_impact': 'Risk-adjusted returns improvement of 8-12%',
-            'implementation_complexity': 'medium',
-            'priority': 'high',
-            'action_steps': [
-                'Gradually increase wheat purchases',
-                'Reduce potato inventory over 2 weeks',
-                'Monitor market response'
-            ]
-        })
+        # Analyze all commodities
+        commodity_analysis = []
+        for commodity, data in sentiment_data.items():
+            commodity_analysis.append({
+                'name': commodity,
+                'sentiment': data.get('current_sentiment', 0),
+                'article_count': data.get('article_count', 0),
+                'label': data.get('sentiment_label', 'neutral')
+            })
         
-        recommendations.append({
-            'id': 'rec_2',
-            'category': 'hedging',
-            'title': 'Implement Price Hedging Strategy',
-            'description': 'High volatility in onion prices (±20%) suggests implementing hedging through '
-                          'futures contracts or forward agreements.',
-            'rationale': 'Protect margins against unexpected price swings',
-            'expected_impact': 'Reduce profit volatility by 30-40%',
-            'implementation_complexity': 'medium',
-            'priority': 'medium',
-            'action_steps': [
-                'Evaluate commodity exchange options',
-                'Set up trading account',
-                'Define hedging ratio (suggested: 60%)'
-            ]
-        })
+        # Sort by sentiment score
+        commodity_analysis.sort(key=lambda x: x['sentiment'], reverse=True)
         
-        recommendations.append({
-            'id': 'rec_3',
-            'category': 'timing',
-            'title': 'Strategic Buying Window',
-            'description': 'Next 14 days present optimal buying opportunity for rice before festive demand surge.',
-            'rationale': 'Prices at seasonal lows, demand will increase in 3 weeks',
-            'expected_impact': 'Potential cost savings of 8-10%',
-            'implementation_complexity': 'low',
-            'priority': 'critical',
-            'action_steps': [
-                'Increase rice purchases by 40%',
-                'Ensure adequate storage',
-                'Lock prices with suppliers'
-            ]
-        })
+        # Recommendation 1: Best performing commodity
+        if commodity_analysis:
+            best = commodity_analysis[0]
+            if best['sentiment'] > 0.1:
+                action = 'Buy' if best['sentiment'] > 0.3 else 'Hold'
+                confidence = min(95, int((abs(best['sentiment']) + 0.3) * 100))
+                
+                recommendations.append({
+                    'action': action,
+                    'commodity': best['name'].title(),
+                    'confidence': confidence,
+                    'reasoning': f"Strong positive sentiment ({best['sentiment']:.2f}) with {best['article_count']} supporting articles. "
+                                f"Market indicators suggest {action.lower()} opportunity."
+                })
         
-        recommendations.append({
-            'id': 'rec_4',
-            'category': 'diversification',
-            'title': 'Expand to Regional Markets',
-            'description': 'South Indian markets showing 12% better margins compared to North. '
-                          'Consider expanding presence.',
-            'rationale': 'Geographic diversification reduces regional risks',
-            'expected_impact': 'Revenue growth potential: 15-20%',
-            'implementation_complexity': 'high',
-            'priority': 'medium',
-            'action_steps': [
-                'Conduct regional market study',
-                'Identify local partners',
-                'Start with pilot operations'
-            ]
-        })
+        # Recommendation 2: Commodity to avoid (if any with very negative sentiment)
+        worst = commodity_analysis[-1] if commodity_analysis else None
+        if worst and worst['sentiment'] < -0.2:
+            confidence = min(90, int((abs(worst['sentiment']) + 0.4) * 100))
+            recommendations.append({
+                'action': 'Monitor',
+                'commodity': worst['name'].title(),
+                'confidence': confidence,
+                'reasoning': f"Negative sentiment ({worst['sentiment']:.2f}) detected. "
+                            f"Based on {worst['article_count']} articles. Suggest monitoring before trading."
+            })
         
-        recommendations.append({
-            'id': 'rec_5',
-            'category': 'technology',
-            'title': 'Implement Automated Pricing',
-            'description': 'Use AI-powered dynamic pricing to respond to market changes in real-time.',
-            'rationale': 'Capture 2-3% additional margin through optimal pricing',
-            'expected_impact': 'Margin improvement: 2-3%',
-            'implementation_complexity': 'medium',
-            'priority': 'low',
-            'action_steps': [
-                'Evaluate pricing software',
-                'Integrate with current systems',
-                'Train team on new tools'
-            ]
-        })
+        # Recommendation 3: Diversification based on mixed signals
+        if len(commodity_analysis) >= 3:
+            top_3 = commodity_analysis[:3]
+            mixed_confidence = int(sum(c['article_count'] for c in top_3) / len(top_3) * 5 + 55)
+            
+            recommendations.append({
+                'action': 'Diversify',
+                'commodity': ', '.join([c['name'].title() for c in top_3]),
+                'confidence': min(85, mixed_confidence),
+                'reasoning': f"Portfolio diversification recommended across top-performing commodities. "
+                            f"Spreads risk while capitalizing on positive market trends."
+            })
         
-        return recommendations
+        return recommendations[:5]  # Return top 5
     
-    def _analyze_performance(self) -> Dict:
-        """
-        Analyze overall market performance
-        """
-        return {
-            'overall_market_trend': 'bullish',
-            'market_confidence_index': 72,
-            'volatility_index': 45,
-            'top_performing_commodities': [
-                {'name': 'Wheat', 'change': '+8.2%', 'trend': 'up'},
-                {'name': 'Rice', 'change': '+6.5%', 'trend': 'up'},
-                {'name': 'Onion', 'change': '+12.3%', 'trend': 'up'}
-            ],
-            'underperforming_commodities': [
-                {'name': 'Potato', 'change': '-3.2%', 'trend': 'down'},
-                {'name': 'Tomato', 'change': '-1.5%', 'trend': 'down'}
-            ],
-            'sentiment_indicators': {
-                'news_sentiment': 0.68,
-                'trader_sentiment': 0.72,
-                'consumer_demand': 78
-            },
-            'key_market_drivers': [
-                'Seasonal demand increase',
-                'Government procurement programs',
-                'Export market opportunities',
-                'Weather-related supply constraints'
-            ]
-        }
+    def _extract_article_topics(self, articles: List[Dict]) -> List[str]:
+        """Extract key topics from articles"""
+        if not articles:
+            return []
+        
+        # Combine all titles
+        text = ' '.join([a.get('title', '') + ' ' + a.get('summary', '') for a in articles])
+        text_lower = text.lower()
+        
+        # Topic keywords
+        topics = []
+        if 'price' in text_lower or 'cost' in text_lower or 'expensive' in text_lower:
+            topics.append('pricing trends')
+        if 'supply' in text_lower or 'shortage' in text_lower or 'surplus' in text_lower:
+            topics.append('supply dynamics')
+        if 'demand' in text_lower or 'consumption' in text_lower:
+            topics.append('demand patterns')
+        if 'export' in text_lower or 'import' in text_lower or 'international' in text_lower:
+            topics.append('trade activity')
+        if 'weather' in text_lower or 'rain' in text_lower or 'drought' in text_lower:
+            topics.append('weather impact')
+        if 'government' in text_lower or 'policy' in text_lower or 'regulation' in text_lower:
+            topics.append('policy changes')
+        if 'harvest' in text_lower or 'crop' in text_lower or 'yield' in text_lower:
+            topics.append('harvest conditions')
+        
+        return topics
     
     def get_commodity_specific_insights(self, commodity_id: int) -> Dict:
         """
         Get insights specific to a commodity
         """
-        commodity = next((c for c in self.commodities if c['id'] == commodity_id), self.commodities[0])
+        # Map commodity ID to name
+        commodity_map = {1: 'wheat', 2: 'rice', 3: 'onion', 4: 'tomato', 5: 'potato', 6: 'corn', 7: 'soybean'}
+        commodity_name = commodity_map.get(commodity_id, 'wheat')
+        
+        # Get real sentiment data
+        try:
+            sentiment_data = sentiment_analyzer.get_commodity_sentiment(commodity_name, days=7)
+        except:
+            sentiment_data = {'current_sentiment': 0, 'sentiment_label': 'neutral', 'article_count': 0}
+        
+        # Analyze sentiment strength
+        sentiment_score = sentiment_data.get('current_sentiment', 0)
+        
+        if sentiment_score > 0.3:
+            strength = 'Strong'
+            score = int(min(95, (sentiment_score + 0.5) * 100))
+        elif sentiment_score > 0.1:
+            strength = 'Moderate'
+            score = int((sentiment_score + 0.3) * 100)
+        elif sentiment_score < -0.2:
+            strength = 'Weak'
+            score = int(max(20, (sentiment_score + 0.8) * 100))
+        else:
+            strength = 'Neutral'
+            score = 50
         
         return {
-            'commodity_name': commodity['name'],
+            'commodity_name': commodity_name.title(),
             'commodity_id': commodity_id,
             'current_analysis': {
-                'price_momentum': 'upward',
-                'strength': 'strong',
-                'score': 78
+                'price_momentum': 'upward' if sentiment_score > 0.1 else 'downward' if sentiment_score < -0.1 else 'stable',
+                'strength': strength,
+                'score': score
             },
-            'opportunities': [opp for opp in self._identify_opportunities() if commodity['name'] in opp.get('commodity', '')],
-            'risks': [risk for risk in self._identify_risks() if commodity['name'] in risk.get('affected_commodities', [])],
-            'recommendations': [
-                f"Consider increasing {commodity['name']} inventory by 15-20%",
-                f"Monitor {commodity['name']} prices in alternative regions for arbitrage",
-                f"Set price alerts for {commodity['name']} at key levels"
-            ]
+            'sentiment_score': sentiment_score,
+            'article_count': sentiment_data.get('article_count', 0),
+            'recommendations': self._generate_recommendations({commodity_name: sentiment_data})
         }
 
 # Global instance

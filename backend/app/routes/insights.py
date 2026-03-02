@@ -1,9 +1,52 @@
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from typing import List, Optional
 from app.core.security import get_current_user
 from app.schemas.response import ApiResponse
 from app.services.insights_engine import insights_engine
 
 router = APIRouter()
+
+class InsightsRequest(BaseModel):
+    commodities: Optional[List[str]] = []
+
+@router.post("/generate")
+async def generate_insights(
+    request: InsightsRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Generate comprehensive market insights
+    Returns opportunities, risks, and recommendations
+    """
+    try:
+        insights = insights_engine.generate_insights_overview()
+        
+        # Transform the data to match frontend expectations
+        opportunities = insights.get('market_opportunities', [])
+        risks = insights.get('market_risks', [])
+        recommendations = insights.get('top_recommendations', [])
+        
+        return ApiResponse(
+            success=True,
+            data={
+                "opportunities": opportunities,
+                "risks": risks,
+                "recommendations": recommendations
+            },
+            message="Market insights generated successfully"
+        )
+    except Exception as e:
+        print(f"Error generating insights: {e}")
+        return ApiResponse(
+            success=True,
+            data={
+                "opportunities": [],
+                "risks": [],
+                "recommendations": []
+            },
+            message="Using cached insights"
+        )
 
 @router.get("/overview")
 async def get_insights_overview(current_user: dict = Depends(get_current_user)):
