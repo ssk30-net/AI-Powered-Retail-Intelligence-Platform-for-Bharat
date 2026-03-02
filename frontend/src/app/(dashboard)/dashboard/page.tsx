@@ -18,6 +18,8 @@ interface DashboardOverview {
   top_gainers: Array<{ id: number; name: string; price: number; change: number }>;
   top_losers: Array<{ id: number; name: string; price: number; change: number }>;
   recent_alerts: unknown[];
+  /** Commodity with most price variation (for chart); use for a more varied curve instead of a flat line */
+  chart_commodity_id?: number | null;
 }
 
 interface PriceTrendsResponse {
@@ -55,12 +57,14 @@ export default function DashboardPage() {
         setError(null);
         const overviewRes = await api.get<DashboardOverview>('/dashboard/overview');
         const overviewData = overviewRes?.data ?? defaultOverview;
+        // Prefer commodity with most price variation so the chart shows a varied curve (e.g. wheat-like)
         const trendCommodityId =
+          overviewData.chart_commodity_id ??
           overviewData.top_gainers?.[0]?.id ??
           overviewData.top_commodities?.[0]?.id ??
           1;
         const trendsRes = await api.get<{ trends: PriceTrendsResponse['trends'] }>(
-          `/dashboard/price-trends?commodity_ids=${trendCommodityId}&days=21`
+          `/dashboard/price-trends?commodity_ids=${trendCommodityId}&days=30&future_days=2`
         );
         if (!cancelled) setOverview(overviewData);
         if (!cancelled) setTrends(trendsRes.data?.trends ?? []);
@@ -78,8 +82,14 @@ export default function DashboardPage() {
 
   const { kpis, top_gainers, top_losers } = overview;
   const chartData = trends[0]?.data_points?.length
-    ? trends[0].data_points.map((d) => ({ month: d.date?.slice(5) || d.date, value: d.price, forecast: d.price }))
+    ? trends[0].data_points.map((d) => ({ date: d.date ?? '', value: d.price }))
     : [];
+
+  const formatChartDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'Z');
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
 
   const sentimentScore = Math.round((Number(kpis.sentiment_score) || 0) * 100);
   const sentimentLabel = sentimentScore >= 60 ? 'positive' : sentimentScore >= 40 ? 'neutral' : 'negative';
@@ -141,7 +151,8 @@ export default function DashboardPage() {
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Price trend (RDS)</h3>
               <p className="text-sm text-gray-600">
-                {trends[0] ? trends[0].commodity_name : 'No data'} • Last 30 days
+                {trends[0] ? trends[0].commodity_name : 'No data'}
+                {trends[0] && overview.chart_commodity_id ? ' (most variation)' : ''} • Last 30 days + 2 days ahead (by date)
               </p>
             </div>
           </div>
@@ -149,7 +160,12 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" stroke="#6b7280" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#6b7280"
+                  tickFormatter={formatChartDate}
+                  interval="preserveStartEnd"
+                />
                 <YAxis stroke="#6b7280" />
                 <Tooltip
                   contentStyle={{
@@ -157,6 +173,8 @@ export default function DashboardPage() {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
                   }}
+                  labelFormatter={formatChartDate}
+                  formatter={(value: number) => [`₹${Number(value).toLocaleString()}`, 'Price']}
                 />
                 <Line
                   type="monotone"

@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
+
+# Number of days to compute price variation for "most varied" chart commodity
+CHART_VARIATION_DAYS = 21
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.schemas.response import ApiResponse
@@ -79,6 +82,27 @@ async def get_dashboard_overview(
                 top_gainers = sorted(top_commodities, key=lambda x: x["change"], reverse=True)[:3]
                 top_losers = sorted(top_commodities, key=lambda x: x["change"])[:3]
 
+        # Prefer Wheat for the dashboard price chart; else commodity with most price variation
+        chart_commodity_id = None
+        try:
+            wheat = db.query(Commodity.id).filter(func.lower(Commodity.name) == "wheat").first()
+            if wheat and any(c["id"] == wheat[0] for c in top_commodities):
+                chart_commodity_id = wheat[0]
+            if chart_commodity_id is None:
+                since = datetime.utcnow() - timedelta(days=CHART_VARIATION_DAYS)
+                row = (
+                    db.query(PriceHistory.commodity_id)
+                    .filter(PriceHistory.recorded_at >= since)
+                    .group_by(PriceHistory.commodity_id)
+                    .having(func.count(PriceHistory.id) >= 2)
+                    .order_by(desc(func.stddev_samp(PriceHistory.price)))
+                    .first()
+                )
+                if row:
+                    chart_commodity_id = row[0]
+        except Exception:
+            pass
+
         return ApiResponse(
             success=True,
             data={
@@ -87,6 +111,7 @@ async def get_dashboard_overview(
                 "top_gainers": top_gainers,
                 "top_losers": top_losers,
                 "recent_alerts": recent_alerts,
+                "chart_commodity_id": chart_commodity_id,
             },
         )
     except Exception as e:
@@ -103,6 +128,7 @@ async def get_dashboard_overview(
                 "top_gainers": [],
                 "top_losers": [],
                 "recent_alerts": [],
+                "chart_commodity_id": None,
             },
             message=f"Using defaults: {str(e)}",
         )
@@ -177,13 +203,15 @@ async def get_kpis(
 async def get_price_trends(
     commodity_ids: str = Query("1,2,3"),
     days: int = Query(30, ge=1, le=365),
+    future_days: int = Query(2, ge=0, le=14),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Price trends from RDS price_history for given commodities and days."""
+    """Price trends from RDS: last N days by date + optional future days from forecasts (date granularity)."""
     try:
         ids = [int(x.strip()) for x in commodity_ids.split(",") if x.strip()]
         since = datetime.utcnow() - timedelta(days=days)
+        today = datetime.utcnow().date()
         trends = []
         for cid in ids[:10]:
             comm = db.query(Commodity).filter(Commodity.id == cid).first()
@@ -207,6 +235,27 @@ async def get_price_trends(
                 {"date": r.day.strftime("%Y-%m-%d") if r.day else None, "price": float(r.avg_price)}
                 for r in rows
             ]
+            if future_days > 0:
+                future_rows = (
+                    db.query(
+                        Forecast.forecast_date.label("day"),
+                        func.avg(Forecast.predicted_price).label("avg_price"),
+                    )
+                    .filter(
+                        Forecast.commodity_id == cid,
+                        Forecast.forecast_date >= today,
+                    )
+                    .group_by(Forecast.forecast_date)
+                    .order_by(Forecast.forecast_date)
+                    .limit(future_days)
+                    .all()
+                )
+                for r in future_rows:
+                    if r.day:
+                        data_points.append({
+                            "date": r.day.strftime("%Y-%m-%d"),
+                            "price": float(r.avg_price),
+                        })
             trends.append({
                 "commodity_id": cid,
                 "commodity_name": name,

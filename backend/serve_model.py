@@ -1,6 +1,6 @@
 """
-Local ML Model Serving API
-Serves the trained XGBoost model without AWS SageMaker
+ML Model Serving API
+Uses AWS SageMaker endpoint when configured; falls back to local trained model.
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +10,16 @@ import xgboost as xgb
 import numpy as np
 import json
 import logging
-from typing import Dict, List
+import os
+from typing import Dict, List, Optional, Tuple
 from pathlib import Path
+
+# Optional: boto3 for SageMaker (fallback to local if unavailable)
+try:
+    import boto3
+    SAGEMAKER_AVAILABLE = True
+except ImportError:
+    SAGEMAKER_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +48,10 @@ MODEL_PKL_PATH = MODEL_DIR / "xgboost_price_predictor.pkl"
 SCALER_PATH = MODEL_DIR / "scaler.pkl"
 FEATURE_NAMES_PATH = MODEL_DIR / "feature_names.json"
 METRICS_PATH = MODEL_DIR / "metrics.json"
+
+# SageMaker: endpoint name from env (e.g. sagemaker-xgboost-2026-03-02-14-22-10-065)
+SAGEMAKER_ENDPOINT_NAME = os.environ.get("SAGEMAKER_ENDPOINT_NAME", "sagemaker-xgboost-2026-03-02-14-22-10-065")
+SAGEMAKER_REGION = os.environ.get("SAGEMAKER_REGION", "us-east-1")
 
 # Global variables for model artifacts
 model = None
@@ -171,6 +183,33 @@ def get_features():
         "count": len(feature_names)
     }
 
+
+def _try_sagemaker_predict(feature_values: list) -> Optional[Tuple[float, str]]:
+    """Try SageMaker endpoint; return (predicted_price, 'sagemaker') or None on failure."""
+    if not SAGEMAKER_AVAILABLE or not SAGEMAKER_ENDPOINT_NAME:
+        return None
+    try:
+        runtime = boto3.client("sagemaker-runtime", region_name=SAGEMAKER_REGION)
+        body = json.dumps({"instances": [feature_values]})
+        response = runtime.invoke_endpoint(
+            EndpointName=SAGEMAKER_ENDPOINT_NAME,
+            ContentType="application/json",
+            Accept="application/json",
+            Body=body,
+        )
+        result = json.loads(response["Body"].read().decode())
+        predictions = result.get("predictions", result.get("prediction", []))
+        if isinstance(predictions, (int, float)):
+            pred = float(predictions)
+        else:
+            pred = float(predictions[0]) if predictions else None
+        if pred is not None:
+            return (pred, "sagemaker")
+    except Exception as e:
+        logger.warning(f"SageMaker endpoint failed, using local model: {e}")
+    return None
+
+
 @app.post("/predict", response_model=PredictionResponse)
 def predict(request: PredictionRequest):
     """
@@ -183,13 +222,7 @@ def predict(request: PredictionRequest):
         PredictionResponse with predicted price and confidence
     """
     try:
-        if model is None or scaler is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Model not loaded. Please check server logs."
-            )
-        
-        # Extract features in correct order
+        # Extract features in correct order (needed for both SageMaker and local)
         feature_values = []
         missing_features = []
         
@@ -204,14 +237,25 @@ def predict(request: PredictionRequest):
         if missing_features:
             logger.warning(f"Missing features (using 0 as default): {missing_features[:5]}...")
         
-        # Convert to numpy array
-        X = np.array([feature_values])
+        # Try SageMaker first; fall back to local model on failure
+        prediction = None
+        model_source = "local"
+        sagemaker_result = _try_sagemaker_predict(feature_values)
+        if sagemaker_result is not None:
+            prediction, model_source = sagemaker_result
+            logger.info(f"Prediction from SageMaker: ₹{prediction:.2f}")
         
-        # Scale features
-        X_scaled = scaler.transform(X)
+        if prediction is None and model is not None and scaler is not None:
+            X = np.array([feature_values])
+            X_scaled = scaler.transform(X)
+            prediction = model.predict(X_scaled)[0]
+            logger.info(f"Prediction from local model: ₹{prediction:.2f}")
         
-        # Make prediction
-        prediction = model.predict(X_scaled)[0]
+        if prediction is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Prediction failed (SageMaker unavailable and local model not loaded)."
+            )
         
         # Determine confidence based on model metrics
         # High confidence if R² > 0.8, Medium if > 0.6, Low otherwise
@@ -223,12 +267,12 @@ def predict(request: PredictionRequest):
         else:
             confidence = "low"
         
-        logger.info(f"Prediction made: ₹{prediction:.2f} (confidence: {confidence})")
+        logger.info(f"Prediction made: ₹{prediction:.2f} (confidence: {confidence}, source: {model_source})")
         
         return {
             "predicted_price": float(prediction),
             "confidence": confidence,
-            "model_version": "1.0.0",
+            "model_version": f"1.0.0 ({model_source})",
             "features_used": len([f for f in request.features if f in feature_names])
         }
     

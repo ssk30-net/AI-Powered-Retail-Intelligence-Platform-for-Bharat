@@ -125,7 +125,7 @@ export default function ForecastsPage() {
     setError(null);
     (async () => {
       try {
-        const res = await api.get<ForecastData>(`/forecasts/${selectedId}?horizon=21`);
+        const res = await api.get<ForecastData>(`/forecasts/${selectedId}?horizon=21&history_days=10`);
         const data = res && 'data' in res ? (res as { data?: ForecastData }).data : undefined;
         if (!cancelled) setForecastData(data ?? null);
       } catch (e) {
@@ -175,6 +175,12 @@ export default function ForecastsPage() {
     ? forecastData.forecast[forecastData.forecast.length - 1]
     : null;
   const hasAnyData = (forecastData?.historical?.length ?? 0) > 0 || (forecastData?.forecast?.length ?? 0) > 0;
+
+  const formatChartDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'Z');
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -263,11 +269,18 @@ export default function ForecastsPage() {
                   <h2 className="text-xl font-semibold mb-4">
                     {forecastData.commodity_name} – Historical & model forecast
                   </h2>
+                  <p className="text-sm text-gray-600 mb-4">Last 10 days by date • Forecast ahead</p>
                   {chartData.length > 0 && hasAnyData ? (
                     <ResponsiveContainer width="100%" height={320}>
                       <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 12 }} />
+                        <XAxis
+                          dataKey="date"
+                          stroke="#6b7280"
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={formatChartDate}
+                          interval="preserveStartEnd"
+                        />
                         <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} />
                         <Tooltip
                           contentStyle={{
@@ -275,6 +288,7 @@ export default function ForecastsPage() {
                             border: '1px solid #e5e7eb',
                             borderRadius: '8px',
                           }}
+                          labelFormatter={formatChartDate}
                         />
                         <Legend />
                         <ReferenceLine

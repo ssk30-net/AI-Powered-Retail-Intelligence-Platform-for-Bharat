@@ -182,16 +182,17 @@ async def get_commodity_forecasts(
 async def get_forecast(
     commodity_id: int,
     horizon: int = Query(30, ge=1, le=90),
+    history_days: int | None = Query(None, ge=1, le=120),
     region_id: int | None = Query(None),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Historical prices + forecast from RDS for a commodity (model output)."""
+    """Historical prices + forecast from RDS for a commodity (model output). Date granularity."""
     try:
         comm = db.query(Commodity).filter(Commodity.id == commodity_id).first()
         commodity_name = comm.name if comm else f"Commodity {commodity_id}"
 
-        max_history_days = min(max(horizon * 2, 30), 120)
+        max_history_days = history_days if history_days is not None else min(max(horizon * 2, 30), 120)
         since = datetime.utcnow() - timedelta(days=max_history_days)
         history_day = func.date(PriceHistory.recorded_at)
         historical_query = db.query(
