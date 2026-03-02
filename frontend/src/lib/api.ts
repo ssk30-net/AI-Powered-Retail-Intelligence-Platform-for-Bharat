@@ -129,3 +129,226 @@ class ApiClient {
 
 export const api = new ApiClient();
 export default api;
+
+// ============================================================================
+// EXTENDED API METHODS FOR AI MARKET PULSE
+// ============================================================================
+
+const ML_API_URL = process.env.NEXT_PUBLIC_ML_API_URL || 'http://localhost:8001';
+
+// Types for API responses
+export interface Commodity {
+  id: number;
+  name: string;
+  category: string;
+  unit: string;
+  description?: string;
+}
+
+export interface PriceHistory {
+  id: number;
+  commodity_id: number;
+  region_id: number;
+  price: number;
+  volume?: number;
+  recorded_at: string;
+  source: string;
+}
+
+export interface SentimentData {
+  id: number;
+  commodity_id: number;
+  headline: string;
+  sentiment_score: number;
+  sentiment_label: string;
+  published_at: string;
+  source: string;
+}
+
+export interface Forecast {
+  id: number;
+  commodity_id: number;
+  region_id: number;
+  forecast_date: string;
+  predicted_price: number;
+  confidence_score: number;
+  model_version: string;
+}
+
+export interface Region {
+  id: number;
+  name: string;
+  state: string;
+  type: string;
+}
+
+export interface MLPrediction {
+  predicted_price: number;
+  confidence: string;
+  model_version: string;
+  features_used: number;
+}
+
+export interface DashboardStats {
+  totalCommodities: number;
+  avgSentiment: number;
+  totalForecasts: number;
+  recentActivity: number;
+}
+
+// Authentication API
+export const authAPI = {
+  async login(email: string, password: string) {
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('Login failed');
+    const data = await response.json();
+    
+    // Store token
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', data.access_token);
+    }
+    
+    return data;
+  },
+
+  async register(email: string, password: string, full_name: string) {
+    return api.post('/auth/register', { email, password, full_name });
+  },
+
+  async getCurrentUser() {
+    return api.get('/auth/me');
+  },
+
+  logout() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+    }
+  }
+};
+
+// Commodities API
+export const commoditiesAPI = {
+  async getAll(): Promise<Commodity[]> {
+    const response = await api.get<Commodity[]>('/commodities');
+    return response.data || [];
+  },
+
+  async getById(id: number): Promise<Commodity> {
+    const response = await api.get<Commodity>(`/commodities/${id}`);
+    return response.data;
+  },
+
+  async getPrices(commodityId: number, limit: number = 100): Promise<PriceHistory[]> {
+    const response = await api.get<PriceHistory[]>(`/commodities/${commodityId}/prices?limit=${limit}`);
+    return response.data || [];
+  },
+};
+
+// Sentiment API
+export const sentimentAPI = {
+  async getAll(limit: number = 100): Promise<SentimentData[]> {
+    const response = await api.get<SentimentData[]>(`/sentiment?limit=${limit}`);
+    return response.data || [];
+  },
+
+  async getByCommodity(commodityId: number): Promise<SentimentData[]> {
+    const response = await api.get<SentimentData[]>(`/sentiment/commodity/${commodityId}`);
+    return response.data || [];
+  },
+};
+
+// Forecasts API
+export const forecastsAPI = {
+  async getAll(limit: number = 100): Promise<Forecast[]> {
+    const response = await api.get<Forecast[]>(`/forecasts?limit=${limit}`);
+    return response.data || [];
+  },
+
+  async getByCommodity(commodityId: number): Promise<Forecast[]> {
+    const response = await api.get<Forecast[]>(`/forecasts/commodity/${commodityId}`);
+    return response.data || [];
+  },
+};
+
+// Regions API
+export const regionsAPI = {
+  async getAll(): Promise<Region[]> {
+    const response = await api.get<Region[]>('/regions');
+    return response.data || [];
+  },
+};
+
+// ML Predictions API (Local Model)
+export const mlAPI = {
+  async predict(features: Record<string, number>): Promise<MLPrediction> {
+    const response = await fetch(`${ML_API_URL}/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ features }),
+    });
+
+    if (!response.ok) throw new Error('Prediction failed');
+    return response.json();
+  },
+
+  async getFeatures(): Promise<string[]> {
+    const response = await fetch(`${ML_API_URL}/features`);
+    if (!response.ok) throw new Error('Failed to fetch features');
+    const data = await response.json();
+    return data.features || [];
+  },
+
+  async getHealth() {
+    const response = await fetch(`${ML_API_URL}/health`);
+    if (!response.ok) throw new Error('ML API health check failed');
+    return response.json();
+  },
+
+  async getMetrics() {
+    const response = await fetch(`${ML_API_URL}/metrics`);
+    if (!response.ok) throw new Error('Failed to fetch metrics');
+    return response.json();
+  },
+};
+
+// Dashboard API
+export const dashboardAPI = {
+  async getStats(): Promise<DashboardStats> {
+    try {
+      const [commodities, sentiment, forecasts] = await Promise.all([
+        commoditiesAPI.getAll(),
+        sentimentAPI.getAll(10),
+        forecastsAPI.getAll(10),
+      ]);
+
+      const avgSentiment = sentiment.length > 0
+        ? sentiment.reduce((acc, s) => acc + s.sentiment_score, 0) / sentiment.length
+        : 0;
+
+      return {
+        totalCommodities: commodities.length,
+        avgSentiment,
+        totalForecasts: forecasts.length,
+        recentActivity: sentiment.length + forecasts.length,
+      };
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      return {
+        totalCommodities: 0,
+        avgSentiment: 0,
+        totalForecasts: 0,
+        recentActivity: 0,
+      };
+    }
+  },
+};
