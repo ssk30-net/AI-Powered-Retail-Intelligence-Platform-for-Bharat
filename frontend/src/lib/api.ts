@@ -380,6 +380,40 @@ export const copilotAPI = {
   },
 };
 
+// Alerts API
+export interface AlertItem {
+  id: number;
+  user_id: string | null;
+  commodity_id: number | null;
+  commodity_name: string | null;
+  alert_type: string;
+  severity: string;
+  title: string;
+  message: string | null;
+  is_read: boolean;
+  is_acknowledged: boolean;
+  triggered_at: string | null;
+}
+
+export const alertsAPI = {
+  async getAlerts(status: 'all' | 'unread' = 'all', limit = 50): Promise<{ alerts: AlertItem[]; unread_count: number }> {
+    const res = await api.get<{ alerts: AlertItem[]; unread_count: number }>(
+      `/alerts?status=${status}&limit=${limit}`
+    );
+    const inner = (res as unknown as { data?: { alerts: AlertItem[]; unread_count: number } }).data;
+    return inner ?? { alerts: [], unread_count: 0 };
+  },
+
+  async acknowledge(alertId?: number, alertIds?: number[]): Promise<{ updated: number }> {
+    const res = await api.post<{ updated: number }>('/alerts/acknowledge', {
+      alert_id: alertId,
+      alert_ids: alertIds,
+    });
+    const inner = (res as unknown as { data?: { updated: number } }).data;
+    return inner ?? { updated: 0 };
+  },
+};
+
 // Data ingest / upload API
 export const dataIngestAPI = {
   async uploadFile(file: File): Promise<{ rows_accepted: number; rows_rejected: number; errors?: string[] }> {

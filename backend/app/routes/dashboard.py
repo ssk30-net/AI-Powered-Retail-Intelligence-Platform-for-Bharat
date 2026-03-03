@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 # Number of days to compute price variation for "most varied" chart commodity
@@ -12,8 +12,48 @@ from app.schemas.response import ApiResponse
 from app.models.commodity import Commodity
 from app.models.price_history import PriceHistory
 from app.models.forecast import Forecast
+from app.models.alert import Alert
 
 router = APIRouter()
+PRICE_SPIKE_ALERT_THRESHOLD_PCT = 10.0
+
+
+def _create_price_alerts_for_big_moves(
+    db: Session, user_id: UUID, top_commodities: list, threshold_pct: float = PRICE_SPIKE_ALERT_THRESHOLD_PCT
+) -> None:
+    """If any commodity has |change| >= threshold_pct, create a price_spike alert (once per commodity per 24h)."""
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    for c in top_commodities:
+        if abs(c["change"]) < threshold_pct:
+            continue
+        existing = (
+            db.query(Alert.id)
+            .filter(
+                Alert.commodity_id == c["id"],
+                Alert.alert_type == "price_spike",
+                Alert.triggered_at >= since,
+                (Alert.user_id == user_id) | (Alert.user_id.is_(None)),
+            )
+            .limit(1)
+            .first()
+        )
+        if existing:
+            continue
+        direction = "spike" if c["change"] > 0 else "drop"
+        severity = "high" if abs(c["change"]) >= 20 else "medium"
+        alert = Alert(
+            user_id=user_id,
+            commodity_id=c["id"],
+            alert_type="price_spike",
+            severity=severity,
+            title=f"{c['name']} price {direction}: {c['change']:+.1f}%",
+            message=f"Price moved {c['change']:+.1f}% vs previous period. Current price level may warrant attention.",
+        )
+        db.add(alert)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
 
 
 def _user_has_uploaded_data(db: Session, user_id: UUID) -> bool:
@@ -107,6 +147,7 @@ async def get_dashboard_overview(
                 kpis["risk_level"] = "high" if abs(avg_change) > 10 else "medium" if abs(avg_change) > 5 else "low"
                 top_gainers = sorted(top_commodities, key=lambda x: x["change"], reverse=True)[:3]
                 top_losers = sorted(top_commodities, key=lambda x: x["change"])[:3]
+                _create_price_alerts_for_big_moves(db, user_id, top_commodities)
 
         # Prefer Wheat for the dashboard price chart; else commodity with most price variation
         chart_commodity_id = None

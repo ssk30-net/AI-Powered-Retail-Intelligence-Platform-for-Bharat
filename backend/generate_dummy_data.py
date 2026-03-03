@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Standalone script to generate dummy commodity price data and save as CSV, XLSX, or JSON.
+Output is saved under backend/generated_data/. Data can include sharp price moves so that
+when ingested, the platform will create alerts/risks (e.g. price spike/drop >10%).
+
 Not part of the application — run directly: python generate_dummy_data.py
 
 Requirements:
@@ -9,7 +12,8 @@ Requirements:
 
 Usage:
   python generate_dummy_data.py
-  Then follow the prompt to choose format (csv, xlsx, json) and optional filename.
+  Then follow the prompt to choose format (csv, xlsx, json), optional filename,
+  and whether to include alert/risk triggers (sharp price moves).
 """
 
 import csv
@@ -18,7 +22,6 @@ import random
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
-
 
 # Commodities with base price (₹) and daily volatility for realistic variation
 COMMODITIES = [
@@ -35,22 +38,54 @@ COMMODITIES = [
 ]
 REGIONS = ["Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata"]
 DEFAULT_DAYS = 90
-OUTPUT_DIR = Path(__file__).resolve().parent
+# Threshold used by dashboard to create alerts (e.g. 10% move)
+ALERT_CHANGE_PCT = 10.0
+# All generated files go here (same folder as generate_alerts_risks_data.py output)
+OUTPUT_DIR = Path(__file__).resolve().parent / "generated_data"
+
+
+def _apply_alert_triggers(
+    commodity_rows: List[Dict[str, Any]],
+    num_spikes: int = 2,
+    num_drops: int = 2,
+) -> None:
+    """
+    Mutate commodity_rows in place: inject sharp one-day moves so that when this data
+    is ingested, dashboard/ingestion logic will create price_spike / risk alerts.
+    """
+    if len(commodity_rows) < 2:
+        return
+    # Pick random day indices (avoid first day so we have a "previous" price)
+    indices = list(range(1, len(commodity_rows)))
+    random.shuffle(indices)
+    # Spike: e.g. +12% to +22%
+    for i in indices[:num_spikes]:
+        prev_price = float(commodity_rows[i - 1]["price"])
+        pct = random.uniform(ALERT_CHANGE_PCT, 22) / 100.0
+        commodity_rows[i]["price"] = round(prev_price * (1 + pct), 2)
+    # Drop: e.g. -12% to -20%
+    for i in indices[num_spikes : num_spikes + num_drops]:
+        prev_price = float(commodity_rows[i - 1]["price"])
+        pct = random.uniform(-0.20, -ALERT_CHANGE_PCT / 100.0)
+        commodity_rows[i]["price"] = round(max(prev_price * (1 + pct), 10), 2)
 
 
 def generate_rows(
     num_days: int = DEFAULT_DAYS,
     include_region: bool = True,
     include_volume: bool = True,
+    include_alert_triggers: bool = True,
 ) -> List[Dict[str, Any]]:
-    """Generate list of dicts: commodity, price, date, [region], [volume]."""
+    """Generate list of dicts: commodity, price, date, [region], [volume].
+    If include_alert_triggers is True, some rows get sharp price moves so ingestion creates alerts/risks.
+    """
     end_date = datetime.utcnow().date()
     rows = []
     for name, base_price, volatility in COMMODITIES:
         price = float(base_price)
+        commodity_rows = []
         for d in range(num_days):
             record_date = end_date - timedelta(days=d)
-            # Random walk
             price = price * (1 + random.gauss(0, volatility))
             price = round(max(price, 10), 2)
             row = {
@@ -62,7 +97,10 @@ def generate_rows(
                 row["region"] = random.choice(REGIONS)
             if include_volume:
                 row["volume"] = round(random.uniform(50, 500), 2)
-            rows.append(row)
+            commodity_rows.append(row)
+        if include_alert_triggers and len(commodity_rows) >= 2:
+            _apply_alert_triggers(commodity_rows, num_spikes=2, num_drops=2)
+        rows.extend(commodity_rows)
     return rows
 
 
@@ -116,6 +154,9 @@ def main():
 
     include_region = input("Include 'region' column? [Y/n]: ").strip().lower() != "n"
     include_volume = input("Include 'volume' column? [Y/n]: ").strip().lower() != "n"
+    include_alert_triggers = (
+        input("Include alert/risk triggers (sharp price moves so ingestion creates alerts)? [Y/n]: ").strip().lower() != "n"
+    )
 
     print("\nOutput format: 1=CSV, 2=XLSX, 3=JSON")
     choice = input("Choose format (1/2/3) [1]: ").strip() or "1"
@@ -124,8 +165,18 @@ def main():
     name = input(f"Output filename (without extension) [{default_name}]: ").strip() or default_name
     name = name.replace(" ", "_")
 
-    rows = generate_rows(num_days=num_days, include_region=include_region, include_volume=include_volume)
-    print(f"Generated {len(rows)} rows for {len(COMMODITIES)} commodities.")
+    rows = generate_rows(
+        num_days=num_days,
+        include_region=include_region,
+        include_volume=include_volume,
+        include_alert_triggers=include_alert_triggers,
+    )
+    print(f"Generated {len(rows)} rows for {len(COMMODITIES)} commodities.", end="")
+    if include_alert_triggers:
+        print(" Includes sharp price moves (alert/risk triggers).")
+    else:
+        print()
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if choice == "2":
         ext = "xlsx"
