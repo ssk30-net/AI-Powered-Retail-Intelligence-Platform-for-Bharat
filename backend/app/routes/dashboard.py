@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, or_
 from datetime import datetime, timedelta
+from uuid import UUID
 
 # Number of days to compute price variation for "most varied" chart commodity
 CHART_VARIATION_DAYS = 21
@@ -15,13 +16,37 @@ from app.models.forecast import Forecast
 router = APIRouter()
 
 
+def _user_has_uploaded_data(db: Session, user_id: UUID) -> bool:
+    """Return True if this user has any price_history rows (their uploaded data)."""
+    return db.query(PriceHistory.id).filter(PriceHistory.user_id == user_id).limit(1).first() is not None
+
+
+def _price_history_filter(PriceHistory, user_id: UUID, use_user_data: bool):
+    """
+    When use_user_data: only rows uploaded by this user (user_id match).
+    Otherwise: RDS/training data — rows not from user upload (user_id IS NULL or source != 'user_upload').
+    This ensures users who haven't uploaded see the same data used for model training (e.g. AGMARKNET, SYNTHETIC).
+    """
+    if use_user_data:
+        return PriceHistory.user_id == user_id
+    return or_(
+        PriceHistory.user_id.is_(None),
+        PriceHistory.source.is_(None),
+        PriceHistory.source != "user_upload",
+    )
+
+
 @router.get("/overview")
 async def get_dashboard_overview(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Dashboard overview from RDS: KPIs, top commodities, recent alerts."""
+    """Dashboard overview from RDS: KPIs, top commodities, recent alerts. Uses user's uploaded data when present, else seed data."""
     try:
+        user_id = UUID(current_user["user_id"])
+        use_user_data = _user_has_uploaded_data(db, user_id)
+        ph_filter = _price_history_filter(PriceHistory, user_id, use_user_data)
+
         # Defaults when no data
         kpis = {
             "price_change_percent": 0.0,
@@ -34,10 +59,10 @@ async def get_dashboard_overview(
         top_losers = []
         recent_alerts = []
 
-        # Build one latest row per commodity explicitly to avoid duplicate-region skew.
+        # Build one latest row per commodity (filtered by user's data or seed).
         commodity_rows = (
             db.query(Commodity.id, Commodity.name)
-            .join(PriceHistory, PriceHistory.commodity_id == Commodity.id)
+            .join(PriceHistory, (PriceHistory.commodity_id == Commodity.id) & ph_filter)
             .distinct()
             .all()
         )
@@ -46,7 +71,7 @@ async def get_dashboard_overview(
             for commodity_id, commodity_name in commodity_rows:
                 ph = (
                     db.query(PriceHistory)
-                    .filter(PriceHistory.commodity_id == commodity_id)
+                    .filter(PriceHistory.commodity_id == commodity_id, ph_filter)
                     .order_by(desc(PriceHistory.recorded_at), desc(PriceHistory.id))
                     .limit(1)
                     .first()
@@ -58,6 +83,7 @@ async def get_dashboard_overview(
                     .filter(
                         PriceHistory.commodity_id == commodity_id,
                         PriceHistory.recorded_at < ph.recorded_at,
+                        ph_filter,
                     )
                     .order_by(desc(PriceHistory.recorded_at), desc(PriceHistory.id))
                     .limit(1)
@@ -92,7 +118,7 @@ async def get_dashboard_overview(
                 since = datetime.utcnow() - timedelta(days=CHART_VARIATION_DAYS)
                 row = (
                     db.query(PriceHistory.commodity_id)
-                    .filter(PriceHistory.recorded_at >= since)
+                    .filter(PriceHistory.recorded_at >= since, ph_filter)
                     .group_by(PriceHistory.commodity_id)
                     .having(func.count(PriceHistory.id) >= 2)
                     .order_by(desc(func.stddev_samp(PriceHistory.price)))
@@ -103,6 +129,8 @@ async def get_dashboard_overview(
         except Exception:
             pass
 
+        data_source = "your_uploaded_data" if use_user_data else "rds_seed"
+
         return ApiResponse(
             success=True,
             data={
@@ -112,6 +140,7 @@ async def get_dashboard_overview(
                 "top_losers": top_losers,
                 "recent_alerts": recent_alerts,
                 "chart_commodity_id": chart_commodity_id,
+                "data_source": data_source,
             },
         )
     except Exception as e:
@@ -129,6 +158,7 @@ async def get_dashboard_overview(
                 "top_losers": [],
                 "recent_alerts": [],
                 "chart_commodity_id": None,
+                "data_source": "rds_seed",
             },
             message=f"Using defaults: {str(e)}",
         )
@@ -207,8 +237,12 @@ async def get_price_trends(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Price trends from RDS: last N days by date + optional future days from forecasts (date granularity)."""
+    """Price trends from RDS: last N days by date + optional future days from forecasts. Uses user's data when present."""
     try:
+        user_id = UUID(current_user["user_id"])
+        use_user_data = _user_has_uploaded_data(db, user_id)
+        ph_filter = _price_history_filter(PriceHistory, user_id, use_user_data)
+
         ids = [int(x.strip()) for x in commodity_ids.split(",") if x.strip()]
         since = datetime.utcnow() - timedelta(days=days)
         today = datetime.utcnow().date()
@@ -225,6 +259,7 @@ async def get_price_trends(
                 .filter(
                     PriceHistory.commodity_id == cid,
                     PriceHistory.recorded_at >= since,
+                    ph_filter,
                 )
                 .group_by(day)
                 .order_by(day)

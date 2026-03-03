@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   TrendingUp, 
-  LineChart, 
+  Upload,
   Lightbulb, 
   Activity,
   MessageSquare,
@@ -22,6 +22,7 @@ export function Sidebar() {
   
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/ingest', label: 'Upload data', icon: Upload },
     { path: '/forecasts', label: 'Forecasts', icon: TrendingUp },
     { path: '/sentiment', label: 'Sentiment', icon: BarChart3 },
     { path: '/insights', label: 'Insights', icon: Lightbulb },

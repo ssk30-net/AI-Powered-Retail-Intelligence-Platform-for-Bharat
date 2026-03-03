@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
+from uuid import UUID
 from app.core.database import get_db
 from app.core.security import (
     verify_password, 
@@ -150,4 +151,22 @@ async def logout(current_user: dict = Depends(get_current_user)):
     return ApiResponse(
         success=True,
         message="Logged out successfully"
+    )
+
+
+@router.post("/skip-onboarding", response_model=ApiResponse[dict])
+async def skip_onboarding(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Mark user as having completed onboarding (e.g. skipped data upload)."""
+    user = db.query(User).filter(User.id == UUID(current_user["user_id"])).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.is_first_login = False
+    db.commit()
+    return ApiResponse(
+        success=True,
+        data={"is_first_login": False},
+        message="Onboarding skipped"
     )

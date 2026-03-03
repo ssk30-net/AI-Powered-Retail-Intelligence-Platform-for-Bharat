@@ -170,6 +170,20 @@ def create_tables():
             """))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_price_commodity_time ON price_history(commodity_id, recorded_at DESC);"))
             print("✓ Price History table created")
+
+            # Add user_id to price_history if not present (for user-partitioned ingestion)
+            conn.execute(text("""
+                DO $$ BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'price_history' AND column_name = 'user_id'
+                    ) THEN
+                        ALTER TABLE price_history ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+                        CREATE INDEX IF NOT EXISTS idx_price_history_user_id ON price_history(user_id);
+                    END IF;
+                END $$;
+            """))
+            print("✓ price_history.user_id column ensured")
             
             # Forecasts table
             conn.execute(text("""

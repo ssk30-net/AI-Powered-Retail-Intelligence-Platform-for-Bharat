@@ -14,12 +14,15 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor to add auth token; allow FormData to set its own Content-Type
     this.client.interceptors.request.use(
       config => {
         const token = this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        if (config.data instanceof FormData) {
+          delete (config.headers as Record<string, unknown>)['Content-Type'];
         }
         return config;
       },
@@ -374,6 +377,24 @@ export const copilotAPI = {
       console.error('Copilot API error:', error);
       throw error;
     }
+  },
+};
+
+// Data ingest / upload API
+export const dataIngestAPI = {
+  async uploadFile(file: File): Promise<{ rows_accepted: number; rows_rejected: number; errors?: string[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<{ rows_accepted: number; rows_rejected: number; errors?: string[] }>(
+      '/data/upload',
+      formData,
+      { timeout: 120000, headers: {} }
+    );
+    return response.data!;
+  },
+
+  async skipOnboarding(): Promise<void> {
+    await api.post('/auth/skip-onboarding', {});
   },
 };
 

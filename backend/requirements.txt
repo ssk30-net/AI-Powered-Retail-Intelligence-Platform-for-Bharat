@@ -29,6 +29,8 @@ torch
 sentence-transformers
 numpy
 pandas
+openpyxl
+xlrd
 scikit-learn
 
 # NLP & Sentiment Analysis

@@ -26,7 +26,8 @@ export default function RegisterPage() {
     try {
       await register(formData);
       toast.success('Registration successful!');
-      router.push('/dashboard');
+      const user = useAuthStore.getState().user;
+      router.push(user?.is_first_login ? '/ingest' : '/dashboard');
     } catch (error: any) {
       toast.error(getErrorMessage(error, 'Registration failed'));
     }
