@@ -75,6 +75,14 @@ models/*.h5
 **/synthetic_*.csv
 **/generated_*.csv
 
+# Dummy data from generate_dummy_data.py (default: dummy_price_data.* or custom name)
+backend/dummy_price_data.csv
+backend/dummy_price_data.xlsx
+backend/dummy_price_data.json
+backend/testing_file.csv
+backend/testing_file.xlsx
+backend/testing_file.json
+
 # Secrets
 secrets.json
 credentials.json
