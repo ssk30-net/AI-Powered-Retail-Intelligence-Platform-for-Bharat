@@ -22,6 +22,8 @@ python-dotenv
 # AI/ML Libraries
 openai>=1.0.0
 anthropic
+google-generativeai>=0.8.0
+groq>=0.11.0
 langchain
 langchain-openai
 transformers

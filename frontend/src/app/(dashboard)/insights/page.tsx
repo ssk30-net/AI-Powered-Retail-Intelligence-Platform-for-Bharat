@@ -1,11 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Lightbulb, TrendingUp, Target, Zap, Loader, AlertTriangle } from 'lucide-react';
+import { Lightbulb, TrendingUp, Target, Zap, Loader, AlertTriangle, Shield, Info } from 'lucide-react';
 import { insightsAPI } from '@/lib/api';
 
 export default function InsightsPage() {
-  const [insights, setInsights] = useState<any>(null);
+  const [insights, setInsights] = useState<{
+    opportunities?: Array<{ title: string; description: string; impact: string; commodity: string }>;
+    risks?: Array<{ title: string; description: string; severity: string; commodity: string }>;
+    recommendations?: Array<{ action: string; commodity: string; confidence: number; reasoning: string }>;
+    mitigation_strategies?: Array<{ title: string; description: string; for_risk: string }>;
+    data_source_note?: string;
+    model?: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +42,18 @@ export default function InsightsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">AI-Powered Market Insights</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <h1 className="text-3xl font-bold">AI-Powered Market Insights</h1>
+          {insights?.data_source_note && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+              <Info className="w-4 h-4 flex-shrink-0" />
+              <span>{insights.data_source_note}</span>
+              {insights.model && (
+                <span className="text-blue-600 font-medium">({insights.model})</span>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Opportunities */}
         {insights?.opportunities && insights.opportunities.length > 0 && (
@@ -91,7 +109,7 @@ export default function InsightsPage() {
 
         {/* AI Recommendations */}
         {insights?.recommendations && insights.recommendations.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
             <h2 className="text-xl font-semibold mb-6 flex items-center">
               <Lightbulb className="w-6 h-6 text-blue-600 mr-2" />
               AI Recommendations
@@ -104,6 +122,7 @@ export default function InsightsPage() {
                       rec.action.toLowerCase() === 'buy' ? 'bg-green-500 text-white' :
                       rec.action.toLowerCase() === 'sell' ? 'bg-red-500 text-white' :
                       rec.action.toLowerCase() === 'hold' ? 'bg-blue-500 text-white' :
+                      rec.action.toLowerCase() === 'diversify' ? 'bg-purple-500 text-white' :
                       'bg-yellow-500 text-white'
                     }`}>
                       {rec.action}
@@ -123,9 +142,31 @@ export default function InsightsPage() {
           </div>
         )}
 
+        {/* Mitigation Strategies */}
+        {insights?.mitigation_strategies && insights.mitigation_strategies.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-6 flex items-center">
+              <Shield className="w-6 h-6 text-amber-600 mr-2" />
+              Mitigation Strategies
+            </h2>
+            <div className="space-y-4">
+              {insights.mitigation_strategies.map((m: any, index: number) => (
+                <div key={index} className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
+                  <h3 className="font-semibold text-gray-900 mb-1">{m.title}</h3>
+                  {m.for_risk && (
+                    <p className="text-xs text-amber-700 mb-2">For risk: {m.for_risk}</p>
+                  )}
+                  <p className="text-gray-600 text-sm">{m.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {(!insights || ((!insights.opportunities || insights.opportunities.length === 0) &&
           (!insights.risks || insights.risks.length === 0) &&
-          (!insights.recommendations || insights.recommendations.length === 0))) && (
+          (!insights.recommendations || insights.recommendations.length === 0) &&
+          (!insights.mitigation_strategies || insights.mitigation_strategies.length === 0))) && (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <Lightbulb className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No insights available</h3>

@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     # AI/ML Services
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""  # Google Gemini for AI Copilot
+    GROQ_API_KEY: str = ""  # Groq (free tier) for agentic insights & recommendations
     
     # Environment
     ENVIRONMENT: str = "development"

@@ -356,23 +356,28 @@ export const dashboardAPI = {
   },
 };
 
-// Copilot API
+// Copilot API (Groq / Gemini / rule-based)
 export const copilotAPI = {
   async chat(message: string, userId?: string): Promise<{
     response: string;
     confidence: number;
-    timestamp: string;
+    sources?: string[];
+    follow_up_suggestions?: string[];
+    model?: string;
   }> {
     try {
-      const response = await api.post<{
-        response: string;
-        confidence: number;
-        timestamp: string;
-      }>('/copilot/chat', {
-        message,
-        user_id: userId || 'anonymous',
-      });
-      return response.data;
+      const res = await api.post('/copilot/chat', { message, context: null });
+      const body = (res as { data?: unknown }).data;
+      // Backend returns { success, data: { response, confidence, ... } }; axios res.data = that body
+      const payload =
+        body && typeof body === 'object' && body !== null && 'data' in body && (body as { data?: unknown }).data && typeof (body as { data: unknown }).data === 'object'
+          ? (body as { data: { response: string; confidence: number } }).data
+          : body && typeof body === 'object' && body !== null && 'response' in body && typeof (body as { response: unknown }).response === 'string'
+            ? (body as { response: string; confidence: number })
+            : null;
+      const responseText = payload?.response ?? 'Unable to get a response. Please try again.';
+      const confidence = payload?.confidence ?? 0;
+      return { response: responseText, confidence, ...(payload && typeof payload === 'object' ? payload : {}) };
     } catch (error) {
       console.error('Copilot API error:', error);
       throw error;
@@ -432,22 +437,41 @@ export const dataIngestAPI = {
   },
 };
 
-// Insights API
+// Insights API (agentic AI from user data when GROQ_API_KEY is set)
+const emptyInsights = {
+  opportunities: [],
+  risks: [],
+  recommendations: [],
+  mitigation_strategies: [] as Array<{ title: string; description: string; for_risk: string }>,
+  data_source_note: '',
+  model: '',
+};
 export const insightsAPI = {
   async getInsights(commodities?: string[]): Promise<{
     opportunities: Array<{title: string; description: string; impact: string; commodity: string}>;
     risks: Array<{title: string; description: string; severity: string; commodity: string}>;
     recommendations: Array<{action: string; commodity: string; confidence: number; reasoning: string}>;
+    mitigation_strategies?: Array<{title: string; description: string; for_risk: string}>;
+    data_source_note?: string;
+    model?: string;
   }> {
     try {
-      const response = await api.post<{
-        opportunities: Array<{title: string; description: string; impact: string; commodity: string}>;
-        risks: Array<{title: string; description: string; severity: string; commodity: string}>;
-        recommendations: Array<{action: string; commodity: string; confidence: number; reasoning: string}>;
-      }>('/insights/generate', {
-        commodities: commodities || [],
-      });
-      return response.data;
+      const res = await api.post('/insights/generate', { commodities: commodities || [] });
+      const body = (res as { data?: unknown }).data;
+      const payload =
+        body && typeof body === 'object' && 'data' in body && body.data && typeof body.data === 'object'
+          ? (body as { data: typeof emptyInsights }).data
+          : body && typeof body === 'object' && Array.isArray((body as { opportunities?: unknown }).opportunities)
+            ? (body as typeof emptyInsights)
+            : emptyInsights;
+      return {
+        opportunities: payload.opportunities ?? [],
+        risks: payload.risks ?? [],
+        recommendations: payload.recommendations ?? [],
+        mitigation_strategies: payload.mitigation_strategies ?? [],
+        data_source_note: payload.data_source_note ?? '',
+        model: payload.model ?? '',
+      };
     } catch (error) {
       console.error('Insights API error:', error);
       throw error;

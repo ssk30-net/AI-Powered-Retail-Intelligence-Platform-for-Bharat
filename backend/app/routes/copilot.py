@@ -22,14 +22,13 @@ async def chat_with_copilot(
     """
     try:
         user_id = current_user.get('user_id', 'anonymous')
-        
-        # Get AI response
         response = ai_copilot.chat(
             message=request.message,
             user_id=user_id,
             context=request.context
         )
-        
+        if not isinstance(response.get("response"), str):
+            response["response"] = str(response.get("response") or "I'm here to help. Ask about prices, sentiment, or trends.")
         return ApiResponse(
             success=True,
             data=response,
@@ -37,7 +36,6 @@ async def chat_with_copilot(
         )
     except Exception as e:
         print(f"Error in copilot chat: {e}")
-        # Fallback response
         return ApiResponse(
             success=True,
             data={
