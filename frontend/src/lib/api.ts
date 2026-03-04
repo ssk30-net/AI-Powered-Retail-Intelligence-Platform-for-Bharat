@@ -536,18 +536,21 @@ export interface BusinessRecommendation {
 }
 export const businessAnalysisAPI = {
   async getCommodities(): Promise<{ commodities: BusinessAnalysisCommodity[]; data_source: string }> {
-    const res = await api.get<{ data?: { commodities: BusinessAnalysisCommodity[]; data_source: string } }>('/business-analysis/commodities');
-    const body = res as { data?: { commodities: BusinessAnalysisCommodity[]; data_source: string } };
-    return body?.data ?? { commodities: [], data_source: '' };
+    const res = await api.get<{ commodities: BusinessAnalysisCommodity[]; data_source: string }>('/business-analysis/commodities');
+    const payload = res?.data;
+    return payload ?? { commodities: [], data_source: '' };
   },
   async simulate(products: BusinessAnalysisProduct[]): Promise<{
     results: SimulateResult[];
     recommendations: BusinessRecommendation[];
     summary: { total_revenue: number; total_cost: number; total_profit: number; overall_margin_percent: number };
   }> {
-    const res = await api.post('/business-analysis/simulate', { products });
-    const body = res as { data?: { results: SimulateResult[]; recommendations: BusinessRecommendation[]; summary: Record<string, number> } };
-    const data = body?.data;
-    return data ?? { results: [], recommendations: [], summary: { total_revenue: 0, total_cost: 0, total_profit: 0, overall_margin_percent: 0 } };
+    const res = await api.post<{
+      results: SimulateResult[];
+      recommendations: BusinessRecommendation[];
+      summary: { total_revenue: number; total_cost: number; total_profit: number; overall_margin_percent: number };
+    }>('/business-analysis/simulate', { products });
+    const payload = res?.data;
+    return payload ?? { results: [], recommendations: [], summary: { total_revenue: 0, total_cost: 0, total_profit: 0, overall_margin_percent: 0 } };
   },
 };
