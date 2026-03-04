@@ -498,3 +498,56 @@ export const insightsAPI = {
     }
   },
 };
+
+// Business Analysis API (margin simulation, recommendations from user data)
+export interface BusinessAnalysisCommodity {
+  id: number;
+  name: string;
+  price: number;
+  volume: number | null;
+}
+export interface BusinessAnalysisProduct {
+  commodity_id: number;
+  name: string;
+  cost_per_unit: number;
+  price_per_unit: number;
+  volume: number;
+  elasticity?: number;
+}
+export interface SimulateResult {
+  commodity_id: number;
+  name: string;
+  cost_per_unit: number;
+  price_per_unit: number;
+  volume: number;
+  revenue: number;
+  total_cost: number;
+  profit: number;
+  margin_percent: number;
+  elasticity: number;
+}
+export interface BusinessRecommendation {
+  type: string;
+  title: string;
+  description: string;
+  action: string;
+  commodity?: string;
+  suggested_change_percent?: number;
+}
+export const businessAnalysisAPI = {
+  async getCommodities(): Promise<{ commodities: BusinessAnalysisCommodity[]; data_source: string }> {
+    const res = await api.get<{ data?: { commodities: BusinessAnalysisCommodity[]; data_source: string } }>('/business-analysis/commodities');
+    const body = res as { data?: { commodities: BusinessAnalysisCommodity[]; data_source: string } };
+    return body?.data ?? { commodities: [], data_source: '' };
+  },
+  async simulate(products: BusinessAnalysisProduct[]): Promise<{
+    results: SimulateResult[];
+    recommendations: BusinessRecommendation[];
+    summary: { total_revenue: number; total_cost: number; total_profit: number; overall_margin_percent: number };
+  }> {
+    const res = await api.post('/business-analysis/simulate', { products });
+    const body = res as { data?: { results: SimulateResult[]; recommendations: BusinessRecommendation[]; summary: Record<string, number> } };
+    const data = body?.data;
+    return data ?? { results: [], recommendations: [], summary: { total_revenue: 0, total_cost: 0, total_profit: 0, overall_margin_percent: 0 } };
+  },
+};

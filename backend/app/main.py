@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, dashboard, forecasts, sentiment, price_sensitivity, copilot, alerts, insights, data_upload, commodities, regions
+from app.routes import auth, dashboard, forecasts, sentiment, price_sensitivity, copilot, alerts, insights, data_upload, commodities, regions, business_analysis
 from app.core.config import settings
 
 app = FastAPI(
@@ -30,6 +30,7 @@ app.include_router(copilot.router, prefix="/api/v1/copilot", tags=["AI Copilot"]
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Alerts"])
 app.include_router(insights.router, prefix="/api/v1/insights", tags=["Insights"])
 app.include_router(data_upload.router, prefix="/api/v1/data", tags=["Data Upload"])
+app.include_router(business_analysis.router, prefix="/api/v1/business-analysis", tags=["Business Analysis"])
 
 @app.get("/")
 async def root():

@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Bell,
   BarChart3,
+  Calculator,
   LogOut
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -24,6 +25,7 @@ export function Sidebar() {
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/ingest', label: 'Upload data', icon: Upload },
     { path: '/forecasts', label: 'Forecasts', icon: TrendingUp },
+    { path: '/business-analysis', label: 'Business analysis', icon: Calculator },
     { path: '/sentiment', label: 'Sentiment', icon: BarChart3 },
     { path: '/insights', label: 'Insights', icon: Lightbulb },
     { path: '/alerts', label: 'Alerts', icon: Bell },
