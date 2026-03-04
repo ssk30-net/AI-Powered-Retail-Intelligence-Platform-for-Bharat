@@ -483,6 +483,7 @@ export const insightsAPI = {
     sentiment_score: number;
     article_count: number;
     articles: Array<{headline: string; sentiment: string; source: string; published_at: string}>;
+    data_source_note?: string;
   }> {
     try {
       const response = await api.get<{
@@ -490,11 +491,24 @@ export const insightsAPI = {
         sentiment_score: number;
         article_count: number;
         articles: Array<{headline: string; sentiment: string; source: string; published_at: string}>;
+        data_source_note?: string;
       }>(`/sentiment/commodity/${commodity}`);
-      return response.data;
+      return response?.data ?? { overall_sentiment: 'neutral', sentiment_score: 0, article_count: 0, articles: [] };
     } catch (error) {
       console.error('Sentiment API error:', error);
       throw error;
+    }
+  },
+
+  /** Commodities to show on sentiment page: from user's uploaded data or platform data. */
+  async getSentimentCommodities(): Promise<{ commodities: Array<{ id: number; name: string }>; data_source: string }> {
+    try {
+      const res = await api.get<{ commodities: Array<{ id: number; name: string }>; data_source: string }>('/sentiment/commodities');
+      const payload = res?.data;
+      return payload ?? { commodities: [], data_source: 'platform_data' };
+    } catch (error) {
+      console.error('Sentiment commodities API error:', error);
+      return { commodities: [], data_source: 'platform_data' };
     }
   },
 };
