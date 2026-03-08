@@ -9,7 +9,7 @@ env:
   AWS_REGION: eu-north-1
   ECR_REPOSITORY: aimarketpulse-frontend
   ECS_CLUSTER: aimarketpulse-cluster
-  ECS_SERVICE: frontend-service
+  ECS_SERVICE: frontend-task-service-muf4lcwi
 
 jobs:
   deploy:

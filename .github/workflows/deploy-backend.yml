@@ -9,7 +9,7 @@ env:
   AWS_REGION: eu-north-1
   ECR_REPOSITORY: aimarketpulse-backend
   ECS_CLUSTER: aimarketpulse-cluster
-  ECS_SERVICE: backend-service
+  ECS_SERVICE: backend-task-service
 
 jobs:
   deploy:
