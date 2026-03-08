@@ -7,12 +7,13 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "AI Market Pulse"
     
-    # CORS - Can be a JSON string or a list
+    # CORS - Can be a JSON string or a list. Add your ALB URL when deploying.
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
         "http://localhost:8000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
+        "http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com",
     ]
     
     # Database

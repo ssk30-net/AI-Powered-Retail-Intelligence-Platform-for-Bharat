@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AI Market Pulse - Market Intelligence Platform',
   description: 'AI-powered market intelligence and price forecasting platform',
+  icons: { icon: '/favicon.ico' },
 };
 
 export default function RootLayout({
