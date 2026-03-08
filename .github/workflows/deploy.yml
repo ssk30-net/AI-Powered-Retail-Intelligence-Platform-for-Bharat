@@ -38,8 +38,14 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker image
+        env:
+          # Set in "AI Market Pulse" env vars to override; default matches your ALB
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
         run: |
-          docker build -f frontend/Dockerfile -t $ECR_REPOSITORY:latest ./frontend
+          API_URL="${NEXT_PUBLIC_API_URL:-http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1}"
+          docker build -f frontend/Dockerfile -t $ECR_REPOSITORY:latest \
+            --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
+            ./frontend
 
       - name: Tag and push image to ECR
         env:

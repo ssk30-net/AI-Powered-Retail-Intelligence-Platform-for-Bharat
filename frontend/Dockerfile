@@ -11,8 +11,8 @@ RUN npm ci --legacy-peer-deps
 # Copy source code (node_modules excluded via .dockerignore)
 COPY . .
 
-# Build arguments for Next.js environment variables
-ARG NEXT_PUBLIC_API_URL
+# Build arguments for Next.js environment variables (API URL must match your ALB in production)
+ARG NEXT_PUBLIC_API_URL=http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1
 ARG NEXT_PUBLIC_ENVIRONMENT=production
 ARG NEXT_PUBLIC_AWS_REGION=eu-north-1
 

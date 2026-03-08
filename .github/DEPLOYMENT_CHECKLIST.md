@@ -82,4 +82,35 @@ Both run on **push to `main`**. They only **build and push images**; they do not
 
 ---
 
-**Workflows updated:** No hardcoded account ID; builds use `frontend/Dockerfile` and `backend/Dockerfile` with correct build context.
+## 6. "Network Error" on login (deployed app)
+
+If the login page shows **Network Error** when you sign in on the deployed site:
+
+### Cause
+
+The frontend calls your API at `/api/v1` (e.g. `/api/v1/auth/login`). That request must reach the **backend** service, not the frontend.
+
+### Fixes
+
+1. **Frontend must be built with the correct API URL**  
+   The deploy workflow now passes `NEXT_PUBLIC_API_URL` as a build-arg (default: `http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1`).  
+   - To use a different URL (e.g. another ALB): in **Settings → Environments → AI Market Pulse → Environment variables**, add `NEXT_PUBLIC_API_URL` = `http://your-alb-host/api/v1`.  
+   - After changing, **redeploy the frontend** (push to `main` or re-run the workflow) so a new image is built with that URL.
+
+2. **ALB must route `/api` to the backend**  
+   - In AWS: **EC2 → Load Balancers → your ALB → Listeners → Rules**.  
+   - Ensure a rule forwards path `/api` (or `/api/*`) to the **backend target group**, and the default or `/` goes to the frontend target group.  
+   - If `/api` is not routed to the backend, login requests never reach the API and the browser reports a network error.
+
+3. **Backend must be running and healthy**  
+   - ECS service for the backend must be running and tasks healthy.  
+   - Backend target group must have healthy targets so the ALB can send traffic to the backend.
+
+4. **Quick check**  
+   In a browser or with curl, open:  
+   `http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1/health`  
+   If you get a JSON response (or 200), the ALB is routing to the backend. If you get 404 or connection error, fix ALB routing and/or backend deployment.
+
+---
+
+**Workflows updated:** No hardcoded account ID; builds use `frontend/Dockerfile` and `backend/Dockerfile` with correct build context. Frontend image is built with `NEXT_PUBLIC_API_URL` so login uses the correct API.
