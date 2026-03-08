@@ -51,7 +51,7 @@ jobs:
 
       - name: Register new task definition revision and update service
         env:
-          ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:latest
+          ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
         run: |
           set -e
           TASK_DEF_ARN=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION --query 'services[0].taskDefinition' --output text)
