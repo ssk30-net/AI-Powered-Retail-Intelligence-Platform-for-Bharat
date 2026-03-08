@@ -1,63 +1,41 @@
-name: Deploy Backend to AWS
+name: Deploy Backend
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - 'backend/**'
-  workflow_dispatch:
+    branches:
+      - main
 
 env:
   AWS_REGION: eu-north-1
   ECR_REPOSITORY: aimarketpulse-backend
-  ECS_SERVICE: backend-service
-  ECS_CLUSTER: aimarketpulse-cluster
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   deploy:
-    name: Deploy Backend
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        cd backend
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_REPOSITORY .
 
-    - name: Update ECS service
-      run: |
-        aws ecs update-service \
-          --cluster ${{ env.ECS_CLUSTER }} \
-          --service ${{ env.ECS_SERVICE }} \
-          --force-new-deployment \
-          --region ${{ env.AWS_REGION }}
+      - name: Tag image
+        run: |
+          docker tag $ECR_REPOSITORY:latest 152641673729.dkr.ecr.eu-north-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
 
-    - name: Wait for deployment
-      run: |
-        aws ecs wait services-stable \
-          --cluster ${{ env.ECS_CLUSTER }} \
-          --services ${{ env.ECS_SERVICE }} \
-          --region ${{ env.AWS_REGION }}
-        echo "Deployment complete!"
+      - name: Push image
+        run: |
+          docker push 152641673729.dkr.ecr.eu-north-1.amazonaws.com/$ECR_REPOSITORY:${{ github.sha }}
