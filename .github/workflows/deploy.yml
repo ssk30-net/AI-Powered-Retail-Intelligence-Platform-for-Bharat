@@ -22,9 +22,9 @@ jobs:
 
       - name: Verify AWS secrets are set
         run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then echo "::error::AWS_ACCESS_KEY_ID is not set. Add it in Settings → Secrets and variables → Actions"; exit 1; fi
-          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then echo "::error::AWS_SECRET_ACCESS_KEY is not set. Add it in Settings → Secrets and variables → Actions"; exit 1; fi
-          if [ -z "${{ secrets.AWS_ACCOUNT_ID }}" ]; then echo "::error::AWS_ACCOUNT_ID is not set. Add it in Settings → Secrets and variables → Actions"; exit 1; fi
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then echo "::error::AWS_ACCESS_KEY_ID is not set. Add it in Settings > Secrets and variables > Actions"; exit 1; fi
+          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then echo "::error::AWS_SECRET_ACCESS_KEY is not set. Add it in Settings > Secrets and variables > Actions"; exit 1; fi
+          if [ -z "${{ secrets.AWS_ACCOUNT_ID }}" ]; then echo "::error::AWS_ACCOUNT_ID is not set. Add it in Settings > Secrets and variables > Actions"; exit 1; fi
           echo "Required secrets are set."
 
       - name: Configure AWS credentials
@@ -53,3 +53,12 @@ jobs:
         run: |
           docker tag ${{ env.ECR_REPOSITORY }}:latest $ECR_URI
           docker push $ECR_URI
+
+      - name: Force new ECS deployment
+        run: |
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment --region $AWS_REGION
+
+      - name: Wait for ECS service stability
+        run: |
+          aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION
+
