@@ -111,6 +111,11 @@ The frontend calls your API at `/api/v1` (e.g. `/api/v1/auth/login`). That reque
    `http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1/health`  
    If you get a JSON response (or 200), the ALB is routing to the backend. If you get 404 or connection error, fix ALB routing and/or backend deployment.
 
+5. **"POST localhost:8000" or ERR_CONNECTION_REFUSED on login**  
+   The running frontend was built with the wrong API URL (localhost). You must:
+   - Push your latest code so the **Deploy Frontend** workflow runs (it now passes `NEXT_PUBLIC_API_URL` = your ALB URL as build-arg).
+   - After the workflow pushes the new image to ECR, **force ECS to use it**: AWS Console → ECS → Clusters → your cluster → **frontend-service** → **Update** → **Force new deployment**. That pulls the new `:latest` image so the app in the browser calls the ALB instead of localhost.
+
 ---
 
 **Workflows updated:** No hardcoded account ID; builds use `frontend/Dockerfile` and `backend/Dockerfile` with correct build context. Frontend image is built with `NEXT_PUBLIC_API_URL` so login uses the correct API.
