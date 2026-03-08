@@ -35,6 +35,8 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
         run: |
           API_URL="${NEXT_PUBLIC_API_URL:-http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1}"
+          [ -z "$API_URL" ] && API_URL="http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1"
+          echo "Building frontend with NEXT_PUBLIC_API_URL=$API_URL"
           docker build -f frontend/Dockerfile -t $ECR_REPOSITORY:latest \
             --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
             ./frontend
