@@ -74,6 +74,7 @@ Both run on **push to `main`**. They only **build and push images**; they do not
 
 | Issue | Fix |
 |-------|-----|
+| **Credentials could not be loaded / Could not load credentials from any providers** | Add these **repository secrets** in GitHub (not in `.env`): `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ACCOUNT_ID`. Go to **Repo → Settings → Secrets and variables → Actions → New repository secret**. Use the exact names (case-sensitive). |
 | `AWS_ACCOUNT_ID` not set | Add repository secret `AWS_ACCOUNT_ID` (12 digits). |
 | `no basic auth credentials` | Check `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`; ensure IAM user has ECR permissions. |
 | `RepositoryNotFoundException` | Create ECR repos in the same region as the workflow (`eu-north-1` unless you changed it). |
