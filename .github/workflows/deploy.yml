@@ -1,4 +1,4 @@
-name: Deploy Frontend to ECS
+name: Deploy to ECS
 
 on:
   push:
@@ -20,13 +20,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify AWS secrets are set
-        run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then echo "::error::AWS_ACCESS_KEY_ID is not set. Add it in Settings > Secrets and variables > Actions"; exit 1; fi
-          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then echo "::error::AWS_SECRET_ACCESS_KEY is not set. Add it in Settings > Secrets and variables > Actions"; exit 1; fi
-          if [ -z "${{ secrets.AWS_ACCOUNT_ID }}" ]; then echo "::error::AWS_ACCOUNT_ID is not set. Add it in Settings > Secrets and variables > Actions"; exit 1; fi
-          echo "Required secrets are set."
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -37,9 +30,8 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
+      - name: Build image
         env:
-          # Set in "AI Market Pulse" env vars to override; default matches your ALB
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
         run: |
           API_URL="${NEXT_PUBLIC_API_URL:-http://aimarketpulse-alb-1476389455.eu-north-1.elb.amazonaws.com/api/v1}"
@@ -47,18 +39,23 @@ jobs:
             --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
             ./frontend
 
-      - name: Tag and push image to ECR
+      - name: Tag image
+        run: |
+          docker tag $ECR_REPOSITORY:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:latest
+
+      - name: Push image to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:latest
+
+      - name: Register new task definition revision and update service
         env:
-          ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+          ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:latest
         run: |
-          docker tag ${{ env.ECR_REPOSITORY }}:latest $ECR_URI
-          docker push $ECR_URI
-
-      - name: Force new ECS deployment
-        run: |
-          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment --region $AWS_REGION
-
-      - name: Wait for ECS service stability
-        run: |
-          aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION
-
+          set -e
+          TASK_DEF_ARN=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION --query 'services[0].taskDefinition' --output text)
+          aws ecs describe-task-definition --task-definition "$TASK_DEF_ARN" --region $AWS_REGION --query 'taskDefinition' > task-def.json
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' task-def.json > task-def-clean.json
+          jq --arg img "$ECR_URI" '.containerDefinitions[0].image = $img' task-def-clean.json > task-def-new.json
+          NEW_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://task-def-new.json --region $AWS_REGION --query 'taskDefinition.taskDefinitionArn' --output text)
+          echo "Registered task definition: $NEW_TASK_DEF"
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition "$NEW_TASK_DEF" --region $AWS_REGION --query 'service.deployments[0].status' --output text
