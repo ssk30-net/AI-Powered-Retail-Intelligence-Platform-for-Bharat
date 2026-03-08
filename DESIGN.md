@@ -1,12 +1,410 @@
 # AI Market Pulse - System Design Document
 
+**Version**: 2.0 (Updated with Current Implementation)  
+**Date**: March 2, 2026  
+**Status**: Production Ready
+
+---
+
 ## 1. Executive Summary
 
-AI Market Pulse is a cloud-native, AI-powered platform that provides regional price intelligence and market trend forecasting. This document outlines the technical architecture, AWS service integration, data flows, and implementation strategy.
+AI Market Pulse is an AI-powered retail intelligence platform for the Indian market that provides real-time commodity price tracking, ML-powered forecasting, and sentiment analysis. This document outlines the implemented architecture, data flows, and technical specifications.
+
+### Current Implementation Status
+
+- ✅ Backend API (FastAPI + PostgreSQL)
+- ✅ Frontend Dashboard (Next.js + React)
+- ✅ ML Model (XGBoost, R²=0.8508)
+- ✅ Local ML API (FastAPI serving model)
+- ✅ Data Pipeline (50,000+ records)
+- ✅ Sentiment Analysis (TextBlob + VADER)
+- ✅ Real-time Updates (30s refresh)
+
+---
 
 ## 2. System Architecture Overview
 
-### 2.1 High-Level Architecture
+### 2.1 Current Implementation Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      USER BROWSER                               │
+│                  http://localhost:3000                          │
+│  - Dashboard (Dynamic with real data)                          │
+│  - Forecasts (Dynamic with real data)                          │
+│  - ML Predictions Interface                                    │
+│  - Sentiment Analysis                                          │
+│  - Markets & Insights                                          │
+└────────────────────┬────────────────────────────────────────────┘
+                     │ REST API (JWT Auth)
+                     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    FRONTEND LAYER                               │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Next.js 14 + React 18 + TypeScript                      │  │
+│  │  ├── API Client (axios)                                  │  │
+│  │  ├── React Hooks (useAPI.ts)                             │  │
+│  │  ├── Real-time Updates (30s refresh)                     │  │
+│  │  ├── State Management                                    │  │
+│  │  └── Tailwind CSS + Recharts                             │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│  Port: 3000                                                     │
+└────────┬──────────────────────────────────┬─────────────────────┘
+         │ HTTP/REST                        │ HTTP/REST
+         ▼                                  ▼
+┌────────────────────────┐    ┌────────────────────────────────┐
+│   BACKEND API          │    │     ML MODEL API               │
+│  ┌──────────────────┐  │    │  ┌──────────────────────────┐  │
+│  │  FastAPI 0.134   │  │    │  │  FastAPI + XGBoost       │  │
+│  │  ├── Routes      │  │    │  │  ├── Model Loading       │  │
+│  │  │   ├── auth    │  │    │  │  ├── Feature Scaling     │  │
+│  │  │   ├── commod. │  │    │  │  ├── Predictions         │  │
+│  │  │   ├── regions │  │    │  │  ├── Metrics             │  │
+│  │  │   ├── sentim. │  │    │  │  └── Health Checks       │  │
+│  │  │   └── forecas.│  │    │  └──────────────────────────┘  │
+│  │  ├── Models      │  │    │  Model: xgboost_price_pred.pkl │
+│  │  ├── Services    │  │    │  R² Score: 0.8508              │
+│  │  └── Security    │  │    │  MAPE: 11.83%                  │
+│  └──────────────────┘  │    │  Port: 8001                    │
+│  Port: 8000            │    └────────────────────────────────┘
+└────────┬───────────────┘
+         │ SQLAlchemy ORM
+         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATABASE LAYER                               │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  PostgreSQL 15 (AWS RDS)                                 │  │
+│  │  ├── commodities (50+)                                   │  │
+│  │  ├── regions (37)                                        │  │
+│  │  ├── price_history (50,000+)                             │  │
+│  │  ├── sentiment_data (2,500+)                             │  │
+│  │  ├── forecasts (2,500+)                                  │  │
+│  │  └── users                                               │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│  Host: database-1.cjqose8cc9yh.eu-north-1.rds.amazonaws.com   │
+│  Port: 5432                                                     │
+│  Database: aimarketpulse                                        │
+│  Region: eu-north-1 (Stockholm)                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Technology Stack (Implemented)
+
+### 3.1 Frontend Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Next.js | 14 | React framework with SSR |
+| React | 18 | UI library |
+| TypeScript | 5+ | Type safety |
+| Tailwind CSS | 3+ | Utility-first CSS |
+| Recharts | 2+ | Data visualization |
+| Axios | 1+ | HTTP client |
+| Lucide React | - | Icon library |
+
+### 3.2 Backend Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Python | 3.14 | Programming language |
+| FastAPI | 0.134 | Modern web framework |
+| SQLAlchemy | 2.0.47 | ORM for database |
+| PostgreSQL | 15 | Relational database |
+| Uvicorn | 0.41 | ASGI server |
+| Pydantic | 2+ | Data validation |
+| python-jose | 3+ | JWT implementation |
+| passlib[bcrypt] | 1+ | Password hashing |
+| psycopg2-binary | 2+ | PostgreSQL driver |
+
+### 3.3 ML & Data Science Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| XGBoost | 2+ | Gradient boosting |
+| scikit-learn | 1.8.0 | ML utilities |
+| pandas | 3.0.1 | Data manipulation |
+| numpy | 2.4.2 | Numerical computing |
+| joblib | 1.5.3 | Model serialization |
+
+### 3.4 NLP & Sentiment Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| TextBlob | 0.19.0 | Sentiment analysis |
+| NLTK | 3.9.3 | NLP toolkit |
+| VADER Sentiment | 3.3.2 | Social media sentiment |
+
+### 3.5 Infrastructure
+
+| Service | Purpose | Status |
+|---------|---------|--------|
+| AWS RDS | PostgreSQL hosting | ✅ Active |
+| Local Server | Development | ✅ Active |
+| AWS S3 | Model storage (optional) | 📋 Planned |
+| AWS SageMaker | ML deployment (optional) | 📋 Planned |
+
+---
+
+## 4. Data Flow (Implemented)
+
+### 4.1 Complete Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATA SOURCES                                 │
+│  ├── CSV Files (commodities, regions, prices)                  │
+│  ├── Synthetic Data Generator (GBM for price history)          │
+│  └── ML Training Data Generator (sentiment + forecasts)        │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ data_loader.py
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  POSTGRESQL DATABASE                            │
+│  ├── commodities (50+)                                          │
+│  ├── regions (37)                                               │
+│  ├── price_history (50,000+)                                    │
+│  ├── sentiment_data (2,500+)                                    │
+│  └── forecasts (2,500+)                                         │
+└────────┬────────────────────────────────────┬─────────────────┘
+         │                                    │
+         │ export_training_data.py            │ API Queries
+         ▼                                    ▼
+┌────────────────────────┐    ┌────────────────────────────────┐
+│   ML TRAINING          │    │     BACKEND API                │
+│  ├── Feature Eng.      │    │  ├── GET /commodities          │
+│  ├── train_model.py    │    │  ├── GET /sentiment            │
+│  ├── XGBoost Training  │    │  ├── GET /forecasts            │
+│  └── Model Artifacts   │    │  └── GET /regions              │
+└────────┬───────────────┘    └────────┬───────────────────────┘
+         │                              │
+         ▼                              ▼
+┌────────────────────────┐    ┌────────────────────────────────┐
+│   ML MODEL API         │    │     FRONTEND                   │
+│  serve_model.py        │    │  ├── Dashboard (Dynamic)       │
+│  ├── Load Model        │    │  ├── Forecasts (Dynamic)       │
+│  ├── POST /predict     │    │  ├── ML Predictions            │
+│  └── GET /metrics      │    │  └── Sentiment Analysis        │
+└────────────────────────┘    └────────────────────────────────┘
+```
+
+### 4.2 User Request Flow
+
+```
+1. User opens http://localhost:3000
+2. User logs in → POST /api/v1/auth/login
+3. Backend validates credentials → Returns JWT token
+4. Frontend stores token in localStorage
+5. User navigates to Dashboard
+6. Dashboard component mounts
+7. useDashboardStats() hook triggers
+8. API calls with JWT token:
+   - GET /api/v1/commodities
+   - GET /api/v1/sentiment?limit=10
+   - GET /api/v1/forecasts?limit=10
+9. Backend queries PostgreSQL
+10. Returns data in ApiResponse format
+11. Frontend updates state
+12. UI renders with real data
+13. Auto-refresh every 30 seconds
+```
+
+### 4.3 ML Prediction Flow
+
+```
+1. User navigates to ML Predictions page
+2. User fills in features (price_lag_1, price_lag_7, etc.)
+3. User clicks "Predict Price"
+4. useMLPrediction() hook triggers
+5. POST /predict to ML API (port 8001)
+6. ML API:
+   - Loads XGBoost model
+   - Scales features using scaler.pkl
+   - Makes prediction
+   - Calculates confidence
+7. Returns prediction result
+8. Frontend displays:
+   - Predicted price
+   - Confidence level
+   - Model version
+9. User sees result in < 1 second
+```
+
+---
+
+## 5. Features (Implemented)
+
+### 5.1 Core Features
+
+**1. Real-time Dashboard** ✅
+- Dynamic KPI cards with real data
+- Market trend visualization
+- Sector performance charts
+- Sentiment indicators
+- Recent insights
+- Manual refresh button
+- Auto-refresh (30s)
+- Last updated timestamp
+
+**2. Price Forecasting** ✅
+- 7-day ahead predictions
+- ML-powered (XGBoost)
+- Confidence scores
+- Historical vs predicted charts
+- Commodity-specific forecasts
+- Real-time updates
+
+**3. Sentiment Analysis** ✅
+- News headline analysis
+- Sentiment scoring (-1 to +1)
+- Positive/Negative/Neutral labels
+- Commodity-specific sentiment
+- Source tracking
+- Time-series sentiment trends
+
+**4. ML Predictions Interface** ✅
+- Custom feature input
+- Real-time predictions
+- Confidence levels
+- Model metrics display
+- Feature list
+- Quick fill for testing
+
+**5. Authentication** ✅
+- User registration
+- Secure login (JWT)
+- Password hashing
+- Token management
+- Protected routes
+- Session handling
+
+**6. Data Management** ✅
+- Automated data loading
+- Synthetic data generation
+- ML training data creation
+- Real-time data simulation
+- Batch processing scripts
+
+---
+
+## 6. Database Models (Implemented)
+
+### 6.1 Entity Relationship Diagram
+
+```
+users (1) ────────── (M) alerts
+users (1) ────────── (1) preferences
+
+commodities (1) ──── (M) price_history
+commodities (1) ──── (M) sentiment_data
+commodities (1) ──── (M) forecasts
+
+regions (1) ───────── (M) price_history
+regions (1) ───────── (M) forecasts
+
+price_history (M) ── (1) commodity
+price_history (M) ── (1) region
+
+sentiment_data (M) ─ (1) commodity
+
+forecasts (M) ────── (1) commodity
+forecasts (M) ────── (1) region
+```
+
+### 6.2 Model Specifications
+
+**Commodity Model** (`backend/app/models/commodity.py`)
+```python
+class Commodity(Base):
+    __tablename__ = "commodities"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False, index=True)
+    category = Column(String(100), index=True)
+    unit = Column(String(50))
+    description = Column(Text)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime)
+```
+
+**Region Model** (`backend/app/models/region.py`)
+```python
+class Region(Base):
+    __tablename__ = "regions"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False, index=True)
+    state = Column(String(100), index=True)
+    type = Column(String(50))
+    country = Column(String(100), default='India')
+    latitude = Column(Numeric(10, 8))
+    longitude = Column(Numeric(11, 8))
+    created_at = Column(DateTime)
+```
+
+**PriceHistory Model** (`backend/app/models/price_history.py`)
+```python
+class PriceHistory(Base):
+    __tablename__ = "price_history"
+    
+    id = Column(BigInteger, primary_key=True)
+    commodity_id = Column(Integer, ForeignKey('commodities.id'), index=True)
+    region_id = Column(Integer, ForeignKey('regions.id'), index=True)
+    price = Column(Numeric(12, 2), nullable=False)
+    volume = Column(Numeric(15, 2))
+    source = Column(String(100))
+    recorded_at = Column(DateTime, nullable=False, index=True)
+    created_at = Column(DateTime)
+```
+
+**SentimentData Model** (`backend/app/models/sentiment_data.py`)
+```python
+class SentimentData(Base):
+    __tablename__ = "sentiment_data"
+    
+    id = Column(BigInteger, primary_key=True)
+    commodity_id = Column(Integer, ForeignKey('commodities.id'), index=True)
+    headline = Column(Text)
+    sentiment_score = Column(Numeric(5, 4), index=True)  # -1 to 1
+    sentiment_label = Column(String(20))  # positive/negative/neutral
+    source = Column(String(100))
+    published_at = Column(DateTime, index=True)
+    processed_at = Column(DateTime)
+```
+
+**Forecast Model** (`backend/app/models/forecast.py`)
+```python
+class Forecast(Base):
+    __tablename__ = "forecasts"
+    
+    id = Column(Integer, primary_key=True)
+    commodity_id = Column(Integer, ForeignKey('commodities.id'), index=True)
+    region_id = Column(Integer, ForeignKey('regions.id'))
+    forecast_date = Column(Date, nullable=False, index=True)
+    predicted_price = Column(Numeric(12, 2), nullable=False)
+    confidence_score = Column(Numeric(5, 4))
+    model_version = Column(String(50))
+    created_at = Column(DateTime, index=True)
+```
+
+**User Model** (`backend/app/models/user.py`)
+```python
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(UUID, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(255))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime)
+    last_login_at = Column(DateTime)
+```
+
+---
+
+## 7. API Endpoints (Implemented)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

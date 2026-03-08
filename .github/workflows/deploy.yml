@@ -1,114 +1,47 @@
-name: Deploy to AWS ECS
+name: Deploy to ECS
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:  # Allows manual trigger
+    branches:
+      - main
 
 env:
   AWS_REGION: eu-north-1
-  ECR_BACKEND_REPO: aimarketpulse-backend
-  ECR_FRONTEND_REPO: aimarketpulse-frontend
-  ECR_REGISTRY: 152641673729.dkr.ecr.eu-north-1.amazonaws.com
+  ECR_REPOSITORY: aimarketpulse-frontend
   ECS_CLUSTER: aimarketpulse-cluster
-  ECS_BACKEND_SERVICE: backend-service
-  ECS_FRONTEND_SERVICE: frontend-service
+  ECS_SERVICE: frontend-service
 
 jobs:
-  deploy-backend:
-    name: Deploy Backend
+  deploy:
     runs-on: ubuntu-latest
-    environment: AI Market Pulse
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # Configure AWS credentials
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # Login to ECR
       - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push backend image
-        env:
-          IMAGE_TAG: ${{ github.sha }}
+      # Build image
+      - name: Build Docker image
         run: |
-          cd backend
-          docker build -t $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_BACKEND_REPO:latest
-          docker push $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_BACKEND_REPO:latest
-          echo "Backend image pushed: $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG"
+          docker build -t $ECR_REPOSITORY .
 
-      - name: Register backend task definition
+      # Tag image
+      - name: Tag image
         run: |
-          aws ecs register-task-definition \
-            --cli-input-json file://backend-task-def.json \
-            --region $AWS_REGION
-          echo "Backend task definition registered"
+          docker tag $ECR_REPOSITORY:latest 152641673729.dkr.ecr.eu-north-1.amazonaws.com/$ECR_REPOSITORY:latest
 
-      - name: Update ECS backend service
+      # Push image
+      - name: Push image to ECR
         run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_BACKEND_SERVICE \
-            --force-new-deployment \
-            --region $AWS_REGION
-          echo "Backend service updated"
-
-  deploy-frontend:
-    name: Deploy Frontend
-    runs-on: ubuntu-latest
-    environment: AI Market Pulse
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Build, tag, and push frontend image
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          cd frontend
-          docker build \
-            --build-arg NEXT_PUBLIC_API_URL=http://aimarketpulse-alb-1387394868.eu-north-1.elb.amazonaws.com/api/v1 \
-            --build-arg NEXT_PUBLIC_ENVIRONMENT=production \
-            --build-arg NEXT_PUBLIC_AWS_REGION=eu-north-1 \
-            -t $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
-          docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
-          echo "Frontend image pushed: $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG"
-
-      - name: Register frontend task definition
-        run: |
-          aws ecs register-task-definition \
-            --cli-input-json file://frontend-task-def.json \
-            --region $AWS_REGION
-          echo "Frontend task definition registered"
-
-      - name: Update ECS frontend service
-        run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_FRONTEND_SERVICE \
-            --force-new-deployment \
-            --region $AWS_REGION
-          echo "Frontend service updated"
+          docker push 152641673729.dkr.ecr.eu-north-1.amazonaws.com/$ECR_REPOSITORY:latest
