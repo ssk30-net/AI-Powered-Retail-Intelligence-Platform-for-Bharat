@@ -1,4 +1,4 @@
-name: Deploy to ECS
+name: Deploy Frontend to ECS
 
 on:
   push:
@@ -19,7 +19,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -27,21 +26,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Login to ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build image
       - name: Build Docker image
         run: |
-          docker build -t $ECR_REPOSITORY .
+          docker build -f frontend/Dockerfile -t $ECR_REPOSITORY:latest ./frontend
 
-      # Tag image
-      - name: Tag image
+      - name: Tag and push image to ECR
+        env:
+          ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY:latest
         run: |
-          docker tag $ECR_REPOSITORY:latest 152641673729.dkr.ecr.eu-north-1.amazonaws.com/$ECR_REPOSITORY:latest
-
-      # Push image
-      - name: Push image to ECR
-        run: |
-          docker push 152641673729.dkr.ecr.eu-north-1.amazonaws.com/$ECR_REPOSITORY:latest
+          docker tag $ECR_REPOSITORY:latest $ECR_URI
+          docker push $ECR_URI
